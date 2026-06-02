@@ -18,7 +18,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.dailightstudio.eolmalka",
       "infoPlist": {
-        "UIBackgroundModes": ["fetch", "remote-notification"]
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -39,7 +42,9 @@
         {
           "color": "#a3e635"
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
