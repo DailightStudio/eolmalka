@@ -3,6 +3,8 @@
 // 응답 형식: { RESULT: { OIL: [{ TRADE_DT, PRODCD, PRODNM, PRICE }, ...] } }
 // PRODCD: B027=휘발유, D047=경유, B034=고급휘발유, C004=자동차용부탄(LPG), K015=실내등유
 
+import { cachedFetch } from "./fetch-cache";
+
 // Expo: process.env.EXPO_PUBLIC_* 만 클라이언트 번들에 박힌다.
 const KEY = process.env.EXPO_PUBLIC_OPINET_API_KEY;
 const BASE = "https://www.opinet.co.kr/api";
@@ -27,10 +29,12 @@ type OpinetResponse = {
   RESULT?: { OIL?: OpinetRow[] };
 };
 
-// 가장 최근 전국 평균 (시간당 캐싱 — 오피넷은 일 1회 갱신이라 충분)
-export async function getGasLatest(
-  product: GasProduct = "B027",
-): Promise<GasLatest> {
+// 가장 최근 전국 평균 (1h 캐싱 — 오피넷은 일 1회 갱신이라 충분)
+export function getGasLatest(product: GasProduct = "B027"): Promise<GasLatest> {
+  return cachedFetch(`gas:${product}`, () => fetchGasLatestUncached(product));
+}
+
+async function fetchGasLatestUncached(product: GasProduct): Promise<GasLatest> {
   if (!KEY) return synthetic(product);
   try {
     const url = `${BASE}/avgRecentPrice.do?code=${KEY}&out=json`;

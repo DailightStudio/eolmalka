@@ -7,6 +7,8 @@
 // 도매가라 오피넷(소매)와 절대값은 다르지만 시계열 트렌드는 거의 동일.
 // → 휘발유 1Y 시계열 보완용 (오피넷은 일별 시계열 안 줌).
 
+import { cachedFetch } from "./fetch-cache";
+
 const KEY = process.env.EXPO_PUBLIC_DATA_GO_KR_KEY;
 const BASE =
   "https://apis.data.go.kr/1160100/service/GetGeneralProductInfoService";
@@ -26,9 +28,18 @@ type Item = {
   wtAvgPrcDisc?: string | number;
 };
 
-export async function getKrxOilDaily(
+export function getKrxOilDaily(
   days = 365,
   oilCtg: OilCategory = "휘발유",
+): Promise<KrxOilPoint[] | null> {
+  return cachedFetch(`krx-oil:${oilCtg}:${days}`, () =>
+    fetchKrxOilDailyUncached(days, oilCtg),
+  );
+}
+
+async function fetchKrxOilDailyUncached(
+  days: number,
+  oilCtg: OilCategory,
 ): Promise<KrxOilPoint[] | null> {
   if (!KEY) return null;
   try {

@@ -6,6 +6,8 @@
 // 한국 시세는 부가세 + 매수/매도 호가 영향이 있어 LBMA(국제) 시세보다 약간 비쌈.
 // 진짜 "한국 사람이 KRX에서 사는 가격"에 가까움.
 
+import { cachedFetch } from "./fetch-cache";
+
 const KEY = process.env.EXPO_PUBLIC_DATA_GO_KR_KEY;
 const BASE =
   "https://apis.data.go.kr/1160100/service/GetGeneralProductInfoService";
@@ -50,9 +52,18 @@ type DataGoKrResponse = {
 //   "금 99.99_1kg" — 1kg 단위 거래, clpr이 g당 가격
 //   "미니금 99.99_100g" — 100g 단위, clpr도 g당
 // 둘 다 g당이므로 1kg 종목(거래량 더 큼)을 표준으로.
-export async function getKrxGoldDaily(
+export function getKrxGoldDaily(
   days = 365,
   itemName = "금 99.99_1kg",
+): Promise<KrxGoldPoint[] | null> {
+  return cachedFetch(`krx-gold:${itemName}:${days}`, () =>
+    fetchKrxGoldDailyUncached(days, itemName),
+  );
+}
+
+async function fetchKrxGoldDailyUncached(
+  days: number,
+  itemName: string,
 ): Promise<KrxGoldPoint[] | null> {
   if (!KEY) return null;
   try {

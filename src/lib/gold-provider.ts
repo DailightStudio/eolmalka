@@ -1,3 +1,5 @@
+import { cachedFetch } from "./fetch-cache";
+
 // 금 시세 — CoinGecko의 PAX Gold(PAXG: 1토큰 = 1 troy oz 금, LBMA 추종 1:1) 활용.
 // 무료·무키. 한국 KRX 금시장 종가는 별도(공공데이터포털 키 필요) — 추후.
 // 약간의 토큰 프리미엄/디스카운트는 있을 수 있으나 국제 금 현물가에 가장 근접한 무료 소스.
@@ -11,7 +13,11 @@ export type GoldLatest = {
   live: boolean;
 };
 
-export async function getGoldLatest(): Promise<GoldLatest> {
+export function getGoldLatest(): Promise<GoldLatest> {
+  return cachedFetch("gold:paxg", fetchGoldLatestUncached);
+}
+
+async function fetchGoldLatestUncached(): Promise<GoldLatest> {
   try {
     const res = await fetch(
       "https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=usd,krw",

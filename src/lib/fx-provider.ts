@@ -1,3 +1,5 @@
+import { cachedFetch } from "./fetch-cache";
+
 // 환율 데이터 제공자 — dd-trip fx.provider.ts 포팅.
 // 우선순위: Twelve Data(키 있을 때) → Frankfurter(무키·ECB) → 합성 폴백.
 // `live` = 실데이터 fetch 성공 여부 (키 유무가 아님).
@@ -26,7 +28,11 @@ const FX_OFFLINE = process.env.EXPO_PUBLIC_FX_OFFLINE === "1";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export async function getFxSeries(
+export function getFxSeries(base: FxBase, days: number): Promise<FxSeriesResult> {
+  return cachedFetch(`fx:${base}:${days}`, () => fetchFxSeriesUncached(base, days));
+}
+
+async function fetchFxSeriesUncached(
   base: FxBase,
   days: number,
 ): Promise<FxSeriesResult> {
