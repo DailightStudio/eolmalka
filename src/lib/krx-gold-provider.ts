@@ -45,10 +45,14 @@ type DataGoKrResponse = {
   };
 };
 
-// 지난 N일 KRX 금시장 1g 종가 시계열 (영업일만, 주말·공휴일 누락)
+// 지난 N일 KRX 금시장 1g 종가 시계열 (영업일만)
+// 종목명 예시(2026 기준):
+//   "금 99.99_1kg" — 1kg 단위 거래, clpr이 g당 가격
+//   "미니금 99.99_100g" — 100g 단위, clpr도 g당
+// 둘 다 g당이므로 1kg 종목(거래량 더 큼)을 표준으로.
 export async function getKrxGoldDaily(
   days = 365,
-  itemName = "금99.99K_1g",
+  itemName = "금 99.99_1kg",
 ): Promise<KrxGoldPoint[] | null> {
   if (!KEY) return null;
   try {
@@ -58,10 +62,10 @@ export async function getKrxGoldDaily(
       serviceKey: KEY,
       resultType: "json",
       pageNo: "1",
-      numOfRows: String(Math.min(days + 30, 1000)), // 여유분
+      numOfRows: String(Math.min(days + 30, 1000)),
       beginBasDt: ymd(start),
       endBasDt: ymd(end),
-      itmsNm: itemName,
+      likeItmsNm: itemName, // 부분 일치 (공백·표기 변동 흡수)
     });
     const url = `${BASE}/getGoldPriceInfo?${params.toString()}`;
     const res = await fetch(url);
