@@ -7,7 +7,7 @@
 - ~~**환율**~~ — Frankfurter(무키·무료) 연동 완료. USD/KRW · JPY/KRW 실데이터.
   - 추가 통화(EUR/CNY 등)는 `FX_BASE` 매핑만 늘리면 됨
   - Twelve Data 옵션 폴백도 포팅됨 (키 있을 때 우선)
-- **주유비** — 오피넷 OpenAPI 키 발급 (회원가입+신청 필요) → 전국·시도·시군구 평균
+- ~~**주유비**~~ — 오피넷 OpenAPI 연동 완료(현재가 실데이터 + 합성 시계열을 현재가에 스케일). 시도/시군구 평균·일자별 시계열 누적은 추가 항목.
 - **금** — 한국금거래소 / KRX 금시장. **공식 API 한정적** → 스크래핑 검토 (robots/약관 확인 선행)
 - **항공권** — Skyscanner 파트너 신청 or Amadeus Self-Service or Travelpayouts 어필리에이트. 노선·왕복 최저가 1주일 단위
 - 캐싱 — Vercel KV 24h TTL (rate limit 보호)
@@ -20,10 +20,12 @@
 
 ## UX
 
-- 카테고리 상세 차트 — Recharts / Apache ECharts 검토
-- 가격 알림 등록 (이메일 / 웹푸시)
-- 즐겨찾기 카테고리 상단 고정
+- ~~카테고리 상세 차트~~ — SVG Sparkline 자체 구현
+- **가격 알림 등록** — PWA Web Push (manifest + Service Worker + VAPID + 구독 API + Cron)
+- ~~즐겨찾기 카테고리 상단 고정~~ — localStorage 토글, 정렬도 (기본/신호/변동률)
 - 다국어 (en, ja) — 환율·항공권은 외국인 수요도 있음
+- 휘발유 시도/시군구별 보기 (오피넷 `avgSidoPrice`)
+- 일별 시계열 누적 — KV에 매일 1회 적재 → 합성 대신 실 시계열
 
 ## 수익화
 

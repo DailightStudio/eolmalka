@@ -4,6 +4,7 @@
 // 나머지 카테고리(주유·금·항공권)는 결정론적 더미 시계열.
 
 import { getFxSeries, type FxBase, type FxSource } from "./fx-provider";
+import { getGasLatest } from "./gas-provider";
 
 export type Point = {
   date: string;
@@ -17,7 +18,7 @@ export type Series = {
   forecast: Point[];
   // 데이터 출처/상태(상세 페이지의 정직한 표기용)
   source: "live" | "synthetic";
-  sourceName: FxSource | "synthetic";
+  sourceName: FxSource | "opinet" | "synthetic";
 };
 
 // ── 결정론적 의사난수 (시드 기반, 빌드마다 동일 곡선) ─────
@@ -56,6 +57,8 @@ const SYN_PROFILES: Record<string, SyntheticProfile> = {
 const FX_BASE: Record<string, FxBase> = {
   "fx-usd": "USD",
   "fx-jpy": "JPY",
+  "fx-eur": "EUR",
+  "fx-cny": "CNY",
 };
 
 const DAYS = 365;
@@ -99,15 +102,42 @@ export async function getSeries(slug: string): Promise<Series> {
     };
   }
 
-  // 2) 나머지 — 결정론적 합성
+  // 2) 휘발유 — 오피넷 현재가 가져와서 합성 시계열의 마지막 값에 스케일 맞춤
+  if (slug === "gas-petrol") {
+    const profile = SYN_PROFILES[slug];
+    const synBase = profile.base;
+    const synPast = buildSynthetic(slug, profile);
+    const latest = await getGasLatest("B027");
+    if (latest.live) {
+      // 합성의 마지막 값 → 실 현재가로 모든 값 비례 조정
+      const synLast = synPast[synPast.length - 1].value;
+      const scale = latest.price / synLast;
+      const past = synPast.map((p, i) =>
+        i === synPast.length - 1
+          ? { date: p.date, value: round(latest.price) }
+          : { date: p.date, value: round(p.value * scale) },
+      );
+      const forecast = projectForecast(past, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      return { slug, past, forecast, source: "live", sourceName: "opinet" };
+    }
+    const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+    return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic" };
+  }
+
+  // 3) 나머지 — 결정론적 합성
   const profile = SYN_PROFILES[slug];
   if (!profile) {
     return { slug, past: [], forecast: [], source: "synthetic", sourceName: "synthetic" };
   }
+  const past = buildSynthetic(slug, profile);
+  const forecast = projectForecast(past, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+  return { slug, past, forecast, source: "synthetic", sourceName: "synthetic" };
+}
 
+function buildSynthetic(slug: string, profile: SyntheticProfile): Point[] {
   const rand = seeded(hash(slug));
   const today = new Date();
-  const past: Point[] = [];
+  const out: Point[] = [];
   for (let i = DAYS - 1; i >= 0; i--) {
     const date = addDays(today, -i);
     const t = (DAYS - 1 - i) / (DAYS - 1);
@@ -115,10 +145,9 @@ export async function getSeries(slug: string): Promise<Series> {
     const trend = (t - 0.5) * profile.trend;
     const noise = (rand() - 0.5) * 2 * profile.noiseAmp;
     const value = profile.base * (1 + seasonal + trend + noise);
-    past.push({ date: ymd(date), value: round(value) });
+    out.push({ date: ymd(date), value: round(value) });
   }
-  const forecast = projectForecast(past, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
-  return { slug, past, forecast, source: "synthetic", sourceName: "synthetic" };
+  return out;
 }
 
 // 예측: 환율은 단순 외삽(최근 30일 추세 + 평균회귀), 합성은 profile.forecastDir 사용

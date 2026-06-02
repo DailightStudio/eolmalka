@@ -127,7 +127,9 @@ export const CATEGORY_META: Record<
 > = {
   "fx-usd":     { name: "원/달러 환율", subtitle: "USD/KRW",              unit: "원",    emoji: "💵" },
   "fx-jpy":     { name: "원/엔 환율",   subtitle: "JPY/KRW (100엔)",     unit: "원",    emoji: "💴" },
-  "gas-petrol": { name: "휘발유",       subtitle: "전국 평균",            unit: "원/L",  emoji: "⛽" },
+  "fx-eur":     { name: "원/유로 환율", subtitle: "EUR/KRW",              unit: "원",    emoji: "💶" },
+  "fx-cny":     { name: "원/위안 환율", subtitle: "CNY/KRW",              unit: "원",    emoji: "💴" },
+  "gas-petrol": { name: "휘발유",       subtitle: "전국 평균 (오피넷)",   unit: "원/L",  emoji: "⛽" },
   "gold-kr":    { name: "금 시세",      subtitle: "한국금거래소 24K",     unit: "원/g",  emoji: "🪙" },
   "air-nrt":    { name: "도쿄 항공권",  subtitle: "ICN→NRT 왕복 최저가",  unit: "원",    emoji: "✈️" },
   "air-tpe":    { name: "타이베이 항공권", subtitle: "ICN→TPE 왕복 최저가", unit: "원",  emoji: "✈️" },
