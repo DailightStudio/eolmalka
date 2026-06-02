@@ -1,6 +1,7 @@
-// 환율 데이터 제공자 — dd-trip/apps/api/src/fx/fx.provider.ts 포팅(Next.js 환경).
+// 환율 데이터 제공자 — dd-trip fx.provider.ts 포팅.
 // 우선순위: Twelve Data(키 있을 때) → Frankfurter(무키·ECB) → 합성 폴백.
 // `live` = 실데이터 fetch 성공 여부 (키 유무가 아님).
+// Expo: process.env.EXPO_PUBLIC_* 만 클라이언트 번들에 박힌다.
 
 export type FxBase = "USD" | "JPY" | "EUR" | "CNY";
 export type FxSource = "twelvedata" | "frankfurter" | "synthetic";
@@ -17,10 +18,9 @@ export type FxSeriesResult = {
   live: boolean;
 };
 
-// Frankfurter: 구 api.frankfurter.app → api.frankfurter.dev/v1 로 이전됨.
 const FRANKFURTER_BASE = "https://api.frankfurter.dev/v1";
-const TWELVE_DATA_KEY = process.env.TWELVE_DATA_KEY;
-const FX_OFFLINE = process.env.FX_OFFLINE === "1";
+const TWELVE_DATA_KEY = process.env.EXPO_PUBLIC_TWELVE_DATA_KEY;
+const FX_OFFLINE = process.env.EXPO_PUBLIC_FX_OFFLINE === "1";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -52,8 +52,7 @@ async function fetchFrankfurter(base: FxBase, days: number): Promise<FxPoint[]> 
   const end = new Date();
   const start = new Date(end.getTime() - days * DAY_MS);
   const url = `${FRANKFURTER_BASE}/${ymd(start)}..${ymd(end)}?from=${base}&to=KRW`;
-  // Next.js 캐시: 시간당 1회 재호출(환율은 일 단위 갱신이라 충분)
-  const res = await fetch(url, { next: { revalidate: 3600 } });
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`Frankfurter HTTP ${res.status}`);
   const json = (await res.json()) as {
     rates?: Record<string, { KRW?: number }>;
@@ -74,7 +73,7 @@ async function fetchTwelveData(base: FxBase, days: number): Promise<FxPoint[]> {
   const url =
     `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}` +
     `&interval=1day&outputsize=${size}&apikey=${TWELVE_DATA_KEY}`;
-  const res = await fetch(url, { next: { revalidate: 3600 } });
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`Twelve Data HTTP ${res.status}`);
   const json = (await res.json()) as {
     values?: { datetime: string; close: string }[];

@@ -1,67 +1,84 @@
 # 얼말까 (eolmalka)
 
-**"지금 살까, 기다릴까?"** 한 화면에서 답해주는 시세 비교/예측 앱.
+**"지금 살까, 기다릴까?"** 환율·주유비·항공권·금 시세를 한 화면에서.
+과거 차트 + 현재가 + 미래 예측 + "지금 사세요 / 기다리세요" 직관적 신호.
 
-환율·주유비·항공권·금. 과거 차트 + 현재가 + 미래 예측을 보여주고, "지금 사세요 / 기다리세요" 직관적 신호로 결정을 돕습니다.
+**React Native (Expo) 모바일 앱**. 백엔드 없음 — 데이터는 앱이 직접 fetch, 알림은 로컬.
 
-> 이름 의미: "얼마일까?"의 줄임 — 짧게 묻고 짧게 답하는 톤이 그대로 컨셉.
+> 이름: "얼마일까?"의 줄임. 짧게 묻고 짧게 답하는 톤이 컨셉.
 
 ## 기술 스택
 
-- **Next.js 16** (App Router) + React 19 + TypeScript 5
-- **Tailwind CSS v4** (`@tailwindcss/postcss`)
-- 외부 API:
-  - **환율(현재 LIVE):** Frankfurter (ECB 기준, 무키·무료) — USD/KRW · JPY/KRW. Twelve Data 키 있으면 우선.
-  - 주유비: 오피넷 (한국석유공사) OpenAPI
-  - 금: 한국금거래소 / KRX 금시장 (공식 API 한정적 → 스크래핑 후보)
-  - 항공권: Skyscanner / Amadeus / Travelpayouts 어필리에이트
-- 캐싱: Vercel KV (Upstash Redis)
-- 배포: Vercel
+- **Expo SDK 52** + React Native 0.76 + TypeScript 5
+- **Expo Router** (file-based routing)
+- **react-native-svg** — 자체 Sparkline 차트
+- **AsyncStorage** — 즐겨찾기·정렬·목표가 저장
+- **expo-notifications** — 로컬 알림
+- **expo-background-fetch + task-manager** — 약 1시간 주기 가격 체크 (OS 결정)
+
+## 데이터 소스
+
+| 카테고리 | 출처 | 상태 |
+|---|---|---|
+| USD·JPY·EUR·CNY / KRW | Frankfurter (ECB, 무키·무료) | LIVE |
+| 휘발유 전국 평균 | 오피넷 OpenAPI (무료, 회원가입 필요) | LIVE |
+| 금·항공권 | (예정) 한국금거래소·Travelpayouts | DEMO |
 
 ## 빠른 시작
 
 ```bash
 npm install
-cp .env.example .env.local   # 키 채우기 (없어도 데모는 동작)
-npm run dev
+cp .env.example .env.local   # 오피넷 키 채우기 (선택 — 없으면 휘발유는 합성)
+npx expo start
 ```
 
-`http://localhost:3000` → 카테고리 목록. 카드 클릭 → `/c/[slug]` 상세.
+- Expo Go 앱(iOS/Android)로 QR 스캔 → 즉시 실행
+- `npx expo start --ios` / `--android`로 시뮬레이터·에뮬레이터
 
-## 카테고리 (현재 데모 6개)
+## 빌드 (앱스토어 배포)
 
-| slug | 이름 | 출처(예정) |
-|---|---|---|
-| `fx-usd` | 원/달러 환율 | ECOS |
-| `fx-jpy` | 원/엔 환율 | ECOS |
-| `gas-petrol` | 휘발유 | 오피넷 |
-| `gold-kr` | 금 24K | 한국금거래소 |
-| `air-nrt` | 도쿄 항공권 | Skyscanner/Travelpayouts |
-| `air-tpe` | 타이베이 항공권 | Skyscanner/Travelpayouts |
+```bash
+npm install -g eas-cli
+eas login
+eas build --platform ios      # Apple Developer 계정 필요
+eas build --platform android  # Google Play Console 필요
+```
 
 ## 폴더
 
 ```
+app/
+  _layout.tsx       # 루트 스택 + 알림 셋업 + 백그라운드 등록
+  index.tsx         # 메인 — 카테고리 카드 리스트 + 즐겨찾기 + 정렬
+  c/[slug].tsx      # 카테고리 상세 — 차트 + 통계 + 목표가 알림 설정
 src/
-  app/
-    layout.tsx, page.tsx, globals.css
-    c/[slug]/page.tsx       # 카테고리 상세 (차트 자리 + 신호)
+  components/
+    Sparkline.tsx   # react-native-svg 라인 차트
   lib/
-    demo-categories.ts      # 더미 카테고리 데이터
+    fx-provider.ts  # Frankfurter / Twelve Data / 합성
+    gas-provider.ts # 오피넷 avgRecentPrice
+    demo-series.ts  # 시계열 빌더 (실데이터 + 합성 폴백)
+    signals.ts      # 가격 신호 산출 + 카테고리 메타
+    quartiles.ts    # dd-trip price.ts 포팅 — 분위수·verdict
+    storage.ts      # AsyncStorage 래퍼 (즐겨찾기·정렬·목표가)
+    notifications.ts # 권한·로컬 알림
+    background-check.ts # BackgroundFetch + TaskManager 가격 체크
+assets/             # 아이콘·스플래시 (placeholder)
 ```
+
+## 알림 동작
+
+- 카테고리 상세에서 목표가 입력 → 권한 요청 → 저장
+- 약 1시간마다 백그라운드 fetch (iOS는 OS가 빈도 조정, 앱 사용 빈도에 따라 변동)
+- 즐겨찾기 카테고리 + 목표가 도달 또는 통계 신호 `buy` + `great_deal` 시 로컬 알림
+- 앱 안 켜놔도 알림 옴 (RN 네이티브 로컬 알림)
 
 ## 디자인 톤
 
 - 다크 + 라임/로즈 시그널. 차분하지만 결정은 명확.
-- "지금 사세요 / 기다리세요" 단 한 줄로 끝낼 수 있어야 함.
-- 광고 톤 X. 지나치게 잦은 푸시 X (알람 프리미엄은 옵션).
+- "지금 사세요 / 기다리세요" 단 한 줄로 끝.
+- 광고 톤 X. 잦은 푸시 X.
 
-## 수익화 후보
-
-- 알림(원하는 가격 도달 시 푸시) 프리미엄
-- 항공권 어필리에이트 (Travelpayouts 등)
-- 광고
-
-## 백로그·진행 메모
+## 백로그
 
 `BACKLOG.md` 참고. 끝낸 항목은 체크 대신 삭제.

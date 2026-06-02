@@ -97,27 +97,28 @@ export function forecastChange(series: Series): number {
   return round1(((avg - current) / current) * 100);
 }
 
+// RN 호환 색상 (rgba bg, hex border/stroke)
 export const SIGNAL_STYLE: Record<
   Signal,
-  { bg: string; text: string; label: string; stroke: string }
+  { bg: string; border: string; stroke: string; label: string }
 > = {
   buy: {
-    bg: "bg-lime-500/15 border-lime-500/40",
-    text: "text-lime-400",
-    label: "지금 사세요",
+    bg: "rgba(132, 204, 22, 0.10)",
+    border: "rgba(132, 204, 22, 0.40)",
     stroke: "#a3e635",
+    label: "지금 사세요",
   },
   wait: {
-    bg: "bg-rose-500/15 border-rose-500/40",
-    text: "text-rose-400",
-    label: "기다리세요",
+    bg: "rgba(244, 63, 94, 0.10)",
+    border: "rgba(244, 63, 94, 0.40)",
     stroke: "#fb7185",
+    label: "기다리세요",
   },
   neutral: {
-    bg: "bg-zinc-500/15 border-zinc-500/40",
-    text: "text-zinc-300",
-    label: "보통",
+    bg: "rgba(113, 113, 122, 0.10)",
+    border: "rgba(113, 113, 122, 0.40)",
     stroke: "#a1a1aa",
+    label: "보통",
   },
 };
 

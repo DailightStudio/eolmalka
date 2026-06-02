@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "얼말까",
+    "slug": "eolmalka",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "eolmalka",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dailightstudio.eolmalka",
+      "infoPlist": {
+        "UIBackgroundModes": ["fetch", "remote-notification"]
+      }
+    },
+    "android": {
+      "package": "com.dailightstudio.eolmalka"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "color": "#a3e635"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

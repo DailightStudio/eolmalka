@@ -3,7 +3,8 @@
 // 응답 형식: { RESULT: { OIL: [{ TRADE_DT, PRODCD, PRODNM, PRICE }, ...] } }
 // PRODCD: B027=휘발유, D047=경유, B034=고급휘발유, C004=자동차용부탄(LPG), K015=실내등유
 
-const KEY = process.env.OPINET_API_KEY;
+// Expo: process.env.EXPO_PUBLIC_* 만 클라이언트 번들에 박힌다.
+const KEY = process.env.EXPO_PUBLIC_OPINET_API_KEY;
 const BASE = "https://www.opinet.co.kr/api";
 
 export type GasProduct = "B027" | "D047" | "B034" | "C004" | "K015";
@@ -33,7 +34,7 @@ export async function getGasLatest(
   if (!KEY) return synthetic(product);
   try {
     const url = `${BASE}/avgRecentPrice.do?code=${KEY}&out=json`;
-    const res = await fetch(url, { next: { revalidate: 3600 } });
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = (await res.json()) as OpinetResponse;
     const rows = json.RESULT?.OIL ?? [];
