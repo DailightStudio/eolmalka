@@ -1,13 +1,25 @@
 import Link from "next/link";
-import { CATEGORIES, SIGNAL_STYLE } from "@/lib/demo-categories";
+import { getSeries } from "@/lib/demo-series";
+import {
+  CATEGORY_META,
+  CATEGORY_SLUGS,
+  SIGNAL_STYLE,
+  computeStats,
+} from "@/lib/signals";
+import { Sparkline } from "@/components/Sparkline";
 
 export default function HomePage() {
+  const cards = CATEGORY_SLUGS.map((slug) => {
+    const series = getSeries(slug);
+    const meta = CATEGORY_META[slug];
+    const stats = computeStats(series);
+    return { slug, meta, series, stats };
+  });
+
   return (
     <main className="mx-auto max-w-md px-5 py-8">
       <header className="mb-6">
-        <p className="text-xs font-bold tracking-widest text-lime-400">
-          얼말까
-        </p>
+        <p className="text-xs font-bold tracking-widest text-lime-400">얼말까</p>
         <h1 className="mt-2 text-2xl font-bold leading-tight">
           지금 살까,
           <br />
@@ -20,45 +32,57 @@ export default function HomePage() {
       </header>
 
       <section className="space-y-3">
-        {CATEGORIES.map((c) => {
-          const s = SIGNAL_STYLE[c.signal];
-          const positive = c.change30d > 0;
+        {cards.map(({ slug, meta, series, stats }) => {
+          const s = SIGNAL_STYLE[stats.signal];
+          const positive = stats.change30d > 0;
           return (
             <Link
-              key={c.slug}
-              href={`/c/${c.slug}`}
+              key={slug}
+              href={`/c/${slug}`}
               className={`block rounded-2xl border ${s.bg} p-4 transition active:scale-[0.99]`}
             >
               <div className="flex items-start gap-3">
-                <div className="text-2xl">{c.emoji}</div>
+                <div className="text-2xl">{meta.emoji}</div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <h2 className="font-semibold text-zinc-100 truncate">
-                      {c.name}
+                      {meta.name}
                     </h2>
                     <span
-                      className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${s.text} border ${s.bg.replace("bg-", "border-").split(" ")[0]}`}
+                      className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${s.text}`}
                     >
                       {s.label}
                     </span>
                   </div>
                   <p className="mt-0.5 text-[11px] text-zinc-500">
-                    {c.subtitle}
+                    {meta.subtitle}
                   </p>
                   <div className="mt-2 flex items-baseline gap-2">
                     <span className="text-xl font-bold text-zinc-100">
-                      {c.current.toLocaleString()}
+                      {stats.current.toLocaleString()}
                     </span>
-                    <span className="text-[11px] text-zinc-500">{c.unit}</span>
+                    <span className="text-[11px] text-zinc-500">
+                      {meta.unit}
+                    </span>
                     <span
                       className={`ml-auto text-xs font-semibold ${positive ? "text-rose-400" : "text-lime-400"}`}
                     >
                       {positive ? "+" : ""}
-                      {c.change30d}% · 30d
+                      {stats.change30d}% · 30d
                     </span>
                   </div>
-                  <p className={`mt-2 text-[12px] ${s.text}`}>
-                    {c.signalText}
+                  <div className="mt-2 -mx-1">
+                    <Sparkline
+                      past={series.past.slice(-90)}
+                      forecast={series.forecast}
+                      width={320}
+                      height={48}
+                      stroke={s.stroke}
+                      smooth
+                    />
+                  </div>
+                  <p className={`mt-1 text-[12px] ${s.text}`}>
+                    {stats.signalText}
                   </p>
                 </div>
               </div>
@@ -68,8 +92,8 @@ export default function HomePage() {
       </section>
 
       <p className="mt-10 text-[11px] leading-relaxed text-zinc-600">
-        ※ 위 수치는 데모 더미입니다. 실데이터 API 연동 전까지는 의사결정에
-        활용하지 마세요.
+        ※ 위 수치는 결정론적 데모 데이터입니다 (`lib/demo-series.ts`). 실데이터
+        API 연동 전까지는 의사결정에 활용하지 마세요.
       </p>
     </main>
   );
