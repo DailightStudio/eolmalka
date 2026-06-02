@@ -24,6 +24,10 @@ export default function RootLayout() {
       >
         <Stack.Screen name="index" options={{ title: "얼말까" }} />
         <Stack.Screen name="c/[slug]" options={{ title: "" }} />
+        <Stack.Screen
+          name="add"
+          options={{ presentation: "modal", title: "카테고리 추가" }}
+        />
       </Stack>
     </SafeAreaProvider>
   );

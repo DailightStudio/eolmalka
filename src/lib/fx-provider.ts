@@ -3,7 +3,9 @@
 // `live` = 실데이터 fetch 성공 여부 (키 유무가 아님).
 // Expo: process.env.EXPO_PUBLIC_* 만 클라이언트 번들에 박힌다.
 
-export type FxBase = "USD" | "JPY" | "EUR" | "CNY";
+// Frankfurter가 지원하는 어떤 base든 OK — 타입은 string으로 완화.
+// 100엔 단위 스케일링은 JPY에만 적용.
+export type FxBase = string;
 export type FxSource = "twelvedata" | "frankfurter" | "synthetic";
 
 export type FxPoint = {
@@ -90,7 +92,14 @@ async function fetchTwelveData(base: FxBase, days: number): Promise<FxPoint[]> {
 
 // ── 합성 폴백 (네트워크 차단·테스트 결정성) ──────────────
 function synthetic(base: FxBase, days: number): FxPoint[] {
-  const center = base === "USD" ? 1376 : base === "JPY" ? 894 : 1500;
+  // 합성용 대략적 중심값 (실데이터 실패 시 폴백)
+  const CENTERS: Record<string, number> = {
+    USD: 1376, JPY: 894, EUR: 1480, CNY: 191,
+    GBP: 1740, AUD: 905, NZD: 830, CAD: 1010,
+    CHF: 1530, HKD: 175, SGD: 1020, THB: 41,
+    VND: 0.055, INR: 16.5, TRY: 39, MXN: 70, PHP: 24,
+  };
+  const center = CENTERS[base] ?? 1000;
   const out: FxPoint[] = [];
   const now = Date.now();
   for (let i = days; i >= 0; i--) {

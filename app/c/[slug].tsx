@@ -12,10 +12,10 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Sparkline } from "@/components/Sparkline";
 import { getSeries, type Series } from "@/lib/demo-series";
 import {
-  CATEGORY_META,
   SIGNAL_STYLE,
   computeStats,
   forecastChange,
+  metaFor,
 } from "@/lib/signals";
 import { VERDICT_LABEL } from "@/lib/quartiles";
 import { loadTargets, setTarget } from "@/lib/storage";
@@ -31,7 +31,7 @@ export default function CategoryScreen() {
   const [target, setTargetState] = useState<number | null>(null);
   const [draftTarget, setDraftTarget] = useState<string>("");
 
-  const meta = slug ? CATEGORY_META[slug] : undefined;
+  const meta = slug ? metaFor(slug) : undefined;
 
   useEffect(() => {
     if (!slug) return;

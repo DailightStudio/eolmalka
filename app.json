@@ -5,9 +5,15 @@
     "owner": "jaylabs",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "eolmalka",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0b0f17"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dailightstudio.eolmalka",
@@ -16,10 +22,15 @@
       }
     },
     "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0b0f17"
+      },
       "package": "com.dailightstudio.eolmalka"
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",

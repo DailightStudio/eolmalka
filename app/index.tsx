@@ -7,19 +7,21 @@ import {
   Text,
   View,
 } from "react-native";
-import { Link } from "expo-router";
+import { Link, useFocusEffect } from "expo-router";
 import { Sparkline } from "@/components/Sparkline";
 import { getSeries, type Series } from "@/lib/demo-series";
 import {
-  CATEGORY_META,
-  CATEGORY_SLUGS,
   SIGNAL_STYLE,
+  allSlugs,
   computeStats,
+  metaFor,
+  type CategoryMeta,
   type Signal,
 } from "@/lib/signals";
 import {
   loadFavs,
   loadSort,
+  loadUserCategories,
   saveFavs,
   saveSort,
   type SortMode,
@@ -27,7 +29,7 @@ import {
 
 type Card = {
   slug: string;
-  meta: (typeof CATEGORY_META)[string];
+  meta: CategoryMeta;
   series: Series;
   stats: ReturnType<typeof computeStats>;
 };
@@ -39,14 +41,18 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
+    const userCats = await loadUserCategories();
+    const slugs = allSlugs(userCats);
     const next = await Promise.all(
-      CATEGORY_SLUGS.map(async (slug): Promise<Card> => {
+      slugs.map(async (slug): Promise<Card | null> => {
+        const meta = metaFor(slug);
+        if (!meta) return null;
         const series = await getSeries(slug);
         const stats = computeStats(series);
-        return { slug, meta: CATEGORY_META[slug], series, stats };
+        return { slug, meta, series, stats };
       }),
     );
-    setCards(next);
+    setCards(next.filter((c): c is Card => c !== null));
   }, []);
 
   useEffect(() => {
@@ -57,6 +63,13 @@ export default function HomeScreen() {
       await load();
     })();
   }, [load]);
+
+  // 카테고리 추가 화면에서 돌아왔을 때 자동 갱신
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -152,10 +165,17 @@ export default function HomeScreen() {
         <CardRow card={item} isFav={favs.has(item.slug)} onFav={toggleFav} />
       )}
       ListFooterComponent={
-        <Text style={styles.footnote}>
-          ※ 환율은 Frankfurter(ECB), 휘발유는 오피넷, 나머지는 데모. 통계 신호는
-          참고용입니다.
-        </Text>
+        <View>
+          <Link href="/add" asChild>
+            <Pressable style={styles.addBtn}>
+              <Text style={styles.addBtnText}>+ 카테고리 추가</Text>
+            </Pressable>
+          </Link>
+          <Text style={styles.footnote}>
+            ※ 환율은 Frankfurter(ECB), 휘발유는 오피넷, 나머지는 데모. 통계
+            신호는 참고용입니다.
+          </Text>
+        </View>
       }
     />
   );
@@ -301,4 +321,14 @@ const styles = StyleSheet.create({
     marginTop: 20,
     lineHeight: 16,
   },
+  addBtn: {
+    marginTop: 4,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#27272a",
+    backgroundColor: "rgba(132, 204, 22, 0.05)",
+    alignItems: "center",
+  },
+  addBtnText: { color: "#a3e635", fontSize: 13, fontWeight: "700" },
 });

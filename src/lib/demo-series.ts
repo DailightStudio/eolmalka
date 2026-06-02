@@ -53,13 +53,11 @@ const SYN_PROFILES: Record<string, SyntheticProfile> = {
   "air-tpe":    { base: 300000, yearlyAmp: 0.20, noiseAmp: 0.030, trend: 0.02, forecastDir: 0.06 },
 };
 
-// 환율 카테고리 → Frankfurter base 통화 매핑
-const FX_BASE: Record<string, FxBase> = {
-  "fx-usd": "USD",
-  "fx-jpy": "JPY",
-  "fx-eur": "EUR",
-  "fx-cny": "CNY",
-};
+// 환율 슬러그 → Frankfurter base 통화 (fx-XXX 패턴이면 XXX 추출)
+function fxBaseOf(slug: string): FxBase | undefined {
+  const m = slug.match(/^fx-([a-z]{3})$/);
+  return m ? m[1].toUpperCase() : undefined;
+}
 
 const DAYS = 365;
 const FORECAST_DAYS = 30;
@@ -76,7 +74,7 @@ function ymd(d: Date): string {
 
 export async function getSeries(slug: string): Promise<Series> {
   // 1) 환율 — 실데이터 시도
-  const fxBase = FX_BASE[slug];
+  const fxBase = fxBaseOf(slug);
   if (fxBase) {
     const fx = await getFxSeries(fxBase, DAYS);
     if (fx.live) {

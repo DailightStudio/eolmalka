@@ -122,10 +122,14 @@ export const SIGNAL_STYLE: Record<
   },
 };
 
-export const CATEGORY_META: Record<
-  string,
-  { name: string; subtitle: string; unit: string; emoji: string }
-> = {
+export type CategoryMeta = {
+  name: string;
+  subtitle: string;
+  unit: string;
+  emoji: string;
+};
+
+export const CATEGORY_META: Record<string, CategoryMeta> = {
   "fx-usd":     { name: "원/달러 환율", subtitle: "USD/KRW",              unit: "원",    emoji: "💵" },
   "fx-jpy":     { name: "원/엔 환율",   subtitle: "JPY/KRW (100엔)",     unit: "원",    emoji: "💴" },
   "fx-eur":     { name: "원/유로 환율", subtitle: "EUR/KRW",              unit: "원",    emoji: "💶" },
@@ -137,3 +141,54 @@ export const CATEGORY_META: Record<
 };
 
 export const CATEGORY_SLUGS = Object.keys(CATEGORY_META);
+
+// 사용자가 추가 가능한 추가 통화 — Frankfurter가 지원 + 한국인에게 친숙한 순.
+// 시스템 기본(USD/JPY/EUR/CNY)은 제외.
+export const ADDABLE_CURRENCIES: Array<{
+  code: string;
+  korean: string;
+  emoji: string;
+}> = [
+  { code: "GBP", korean: "파운드", emoji: "💷" },
+  { code: "AUD", korean: "호주달러", emoji: "💵" },
+  { code: "NZD", korean: "뉴질랜드달러", emoji: "💵" },
+  { code: "CAD", korean: "캐나다달러", emoji: "💵" },
+  { code: "CHF", korean: "스위스프랑", emoji: "💵" },
+  { code: "HKD", korean: "홍콩달러", emoji: "💵" },
+  { code: "SGD", korean: "싱가포르달러", emoji: "💵" },
+  { code: "THB", korean: "태국바트", emoji: "💵" },
+  { code: "VND", korean: "베트남동", emoji: "💵" },
+  { code: "INR", korean: "인도루피", emoji: "💵" },
+  { code: "TRY", korean: "터키리라", emoji: "💵" },
+  { code: "MXN", korean: "멕시코페소", emoji: "💵" },
+  { code: "PHP", korean: "필리핀페소", emoji: "💵" },
+];
+
+const CURRENCY_LOOKUP = new Map(
+  ADDABLE_CURRENCIES.map((c) => [c.code, c]),
+);
+
+// 사용자 정의 fx-XYZ 슬러그에 대한 메타 동적 생성
+export function metaFor(slug: string): CategoryMeta | undefined {
+  if (CATEGORY_META[slug]) return CATEGORY_META[slug];
+  const m = slug.match(/^fx-([a-z]{3})$/);
+  if (m) {
+    const code = m[1].toUpperCase();
+    const info = CURRENCY_LOOKUP.get(code);
+    if (info) {
+      return {
+        name: `원/${info.korean} 환율`,
+        subtitle: `${code}/KRW`,
+        unit: "원",
+        emoji: info.emoji,
+      };
+    }
+  }
+  return undefined;
+}
+
+export function allSlugs(userCurrencies: string[]): string[] {
+  const user = userCurrencies.map((c) => `fx-${c.toLowerCase()}`);
+  // 시스템 슬러그 다음에 사용자 정의
+  return [...CATEGORY_SLUGS, ...user];
+}

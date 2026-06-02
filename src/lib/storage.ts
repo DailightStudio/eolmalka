@@ -3,9 +3,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const FAVS = "eolmalka:favs:v1";
 const SORT = "eolmalka:sort:v1";
 const TARGETS = "eolmalka:targets:v1";
+const NOTIFY_LOG = "eolmalka:notifylog:v1";
+const USER_CATS = "eolmalka:userCats:v1";
 
 export type SortMode = "default" | "signal" | "change";
 export type Targets = Record<string, number | null>;
+// kind: 'target' = 사용자 목표가 도달, 'signal' = 통계 신호 buy
+// epoch ms 마지막 발송 시각
+export type NotifyLog = Record<string, { target?: number; signal?: number }>;
 
 export async function loadFavs(): Promise<Set<string>> {
   try {
@@ -62,4 +67,79 @@ export async function setTarget(slug: string, value: number | null): Promise<Tar
   else t[slug] = value;
   await saveTargets(t);
   return t;
+}
+
+// ── 알림 발송 이력 (쿨다운용) ─────────────────────────
+export async function loadNotifyLog(): Promise<NotifyLog> {
+  try {
+    const raw = await AsyncStorage.getItem(NOTIFY_LOG);
+    if (!raw) return {};
+    return JSON.parse(raw) as NotifyLog;
+  } catch {
+    return {};
+  }
+}
+
+async function saveNotifyLog(log: NotifyLog): Promise<void> {
+  try {
+    await AsyncStorage.setItem(NOTIFY_LOG, JSON.stringify(log));
+  } catch {}
+}
+
+export async function markNotified(
+  slug: string,
+  kind: "target" | "signal",
+): Promise<void> {
+  const log = await loadNotifyLog();
+  log[slug] = { ...(log[slug] ?? {}), [kind]: Date.now() };
+  await saveNotifyLog(log);
+}
+
+// 쿨다운 검사: target 6h, signal 24h
+const COOLDOWN_MS = {
+  target: 6 * 60 * 60 * 1000,
+  signal: 24 * 60 * 60 * 1000,
+};
+
+export async function isInCooldown(
+  slug: string,
+  kind: "target" | "signal",
+): Promise<boolean> {
+  const log = await loadNotifyLog();
+  const last = log[slug]?.[kind];
+  if (!last) return false;
+  return Date.now() - last < COOLDOWN_MS[kind];
+}
+
+// ── 사용자 정의 카테고리 (현재는 환율 base만) ─────────
+// 저장 형식: ["AUD", "SGD"] — 시스템 기본(USD/JPY/EUR/CNY) 제외한 추가 통화 코드
+export async function loadUserCategories(): Promise<string[]> {
+  try {
+    const raw = await AsyncStorage.getItem(USER_CATS);
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as string[];
+    return arr.filter((x) => typeof x === "string");
+  } catch {
+    return [];
+  }
+}
+
+export async function addUserCategory(base: string): Promise<string[]> {
+  const list = await loadUserCategories();
+  const code = base.toUpperCase();
+  if (!list.includes(code)) list.push(code);
+  try {
+    await AsyncStorage.setItem(USER_CATS, JSON.stringify(list));
+  } catch {}
+  return list;
+}
+
+export async function removeUserCategory(base: string): Promise<string[]> {
+  const list = await loadUserCategories();
+  const code = base.toUpperCase();
+  const next = list.filter((c) => c !== code);
+  try {
+    await AsyncStorage.setItem(USER_CATS, JSON.stringify(next));
+  } catch {}
+  return next;
 }
