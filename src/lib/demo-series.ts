@@ -7,6 +7,7 @@ import { getFxSeries, type FxBase, type FxSource } from "./fx-provider";
 import { getGasLatest } from "./gas-provider";
 import { getGoldLatest } from "./gold-provider";
 import { getKrxGoldDaily } from "./krx-gold-provider";
+import { getKrxOilDaily } from "./krx-oil-provider";
 import { appendDaily, loadDailySeries, mergeWithDaily } from "./series-store";
 
 export type Point = {
@@ -20,7 +21,13 @@ export type Series = {
   past: Point[];
   forecast: Point[];
   source: "live" | "synthetic";
-  sourceName: FxSource | "opinet" | "coingecko-paxg" | "krx-gold" | "synthetic";
+  sourceName:
+    | FxSource
+    | "opinet"
+    | "opinet+krx-oil"
+    | "coingecko-paxg"
+    | "krx-gold"
+    | "synthetic";
   // 시계열(past) 전체가 실 데이터인지(환율) vs 합성 스케일인지(휘발유·금)
   pastIsLive: boolean;
   // 합성에 누적된 실 데이터가 몇 일 섞였는지 (시계열 누적 표시용)
@@ -107,13 +114,42 @@ export async function getSeries(slug: string): Promise<Series> {
     };
   }
 
-  // 2) 휘발유 — 오피넷 현재가 + 합성 1Y 스케일 + 누적 실 데이터 점진 치환
+  // 2) 휘발유 — 현재가=오피넷(소매), 시계열=KRX 석유(도매 트렌드)를 소매 스케일로 변환
   if (slug === "gas-petrol") {
     const profile = SYN_PROFILES[slug];
     const synPast = buildSynthetic(slug, profile);
     const latest = await getGasLatest("B027");
+
+    // 2-a) KRX 석유 도매 시계열 + 오피넷 현재가 조합 (가장 정합)
+    const krxOil = await getKrxOilDaily(365, "휘발유");
+    if (krxOil && krxOil.length >= 5 && latest.live) {
+      const krxLast = krxOil[krxOil.length - 1].close;
+      const ratio = latest.price / krxLast; // 도매→소매 비율
+      // KRX 도매 시계열을 소매 스케일로 변환 + 마지막 점만 오피넷 실 현재가
+      const scaledKrx: Point[] = krxOil.map((p, i) => ({
+        date: p.date,
+        value:
+          i === krxOil.length - 1
+            ? round(latest.price)
+            : round(p.close * ratio),
+      }));
+      // 합성으로 휴장일·갭 채우기
+      const scaledSyn = scaleToCurrent(synPast, latest.price);
+      const { merged, liveDays } = mergeWithDaily(scaledSyn, scaledKrx);
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      return {
+        slug,
+        past: merged,
+        forecast,
+        source: "live",
+        sourceName: "opinet+krx-oil",
+        pastIsLive: liveDays >= synPast.length,
+        liveDays,
+      };
+    }
+
+    // 2-b) KRX 석유 실패 → 오피넷 현재가 + 합성 + 누적 점진 치환 (이전 동작)
     if (latest.live) {
-      // 오늘 가격을 누적 저장 → 시간이 갈수록 차트 꼬리가 실 데이터로
       await appendDaily(slug, latest.price);
       const daily = await loadDailySeries(slug);
       const scaled = scaleToCurrent(synPast, latest.price);
@@ -125,7 +161,7 @@ export async function getSeries(slug: string): Promise<Series> {
         forecast,
         source: "live",
         sourceName: "opinet",
-        pastIsLive: liveDays >= synPast.length, // 365일 다 누적되면 전체 실데이터
+        pastIsLive: liveDays >= synPast.length,
         liveDays,
       };
     }
