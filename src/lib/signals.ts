@@ -135,7 +135,7 @@ export const CATEGORY_META: Record<string, CategoryMeta> = {
   "fx-eur":     { name: "원/유로 환율", subtitle: "EUR/KRW",              unit: "원",    emoji: "💶" },
   "fx-cny":     { name: "원/위안 환율", subtitle: "CNY/KRW",              unit: "원",    emoji: "💴" },
   "gas-petrol": { name: "휘발유",       subtitle: "전국 평균 (오피넷)",   unit: "원/L",  emoji: "⛽" },
-  "gold-kr":    { name: "금 시세",      subtitle: "국제 현물가 1g (LBMA 추종)", unit: "원/g",  emoji: "🪙" },
+  "gold-kr":    { name: "금 시세",      subtitle: "KRX 99.99K 1g (한국 시세)", unit: "원/g",  emoji: "🪙" },
   "air-nrt":    { name: "도쿄 항공권",  subtitle: "ICN→NRT 왕복 최저가",  unit: "원",    emoji: "✈️" },
   "air-tpe":    { name: "타이베이 항공권", subtitle: "ICN→TPE 왕복 최저가", unit: "원",  emoji: "✈️" },
 };

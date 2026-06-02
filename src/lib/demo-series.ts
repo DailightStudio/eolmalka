@@ -6,6 +6,7 @@
 import { getFxSeries, type FxBase, type FxSource } from "./fx-provider";
 import { getGasLatest } from "./gas-provider";
 import { getGoldLatest } from "./gold-provider";
+import { getKrxGoldDaily } from "./krx-gold-provider";
 import { appendDaily, loadDailySeries, mergeWithDaily } from "./series-store";
 
 export type Point = {
@@ -19,7 +20,7 @@ export type Series = {
   past: Point[];
   forecast: Point[];
   source: "live" | "synthetic";
-  sourceName: FxSource | "opinet" | "coingecko-paxg" | "synthetic";
+  sourceName: FxSource | "opinet" | "coingecko-paxg" | "krx-gold" | "synthetic";
   // 시계열(past) 전체가 실 데이터인지(환율) vs 합성 스케일인지(휘발유·금)
   pastIsLive: boolean;
   // 합성에 누적된 실 데이터가 몇 일 섞였는지 (시계열 누적 표시용)
@@ -132,9 +133,33 @@ export async function getSeries(slug: string): Promise<Series> {
     return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
   }
 
-  // 3) 금 — CoinGecko PAXG 현재가 + 합성 1Y 스케일 + 누적 실 데이터 점진 치환
+  // 3) 금 — 우선순위: KRX 금시장(한국 시세, 일별 실시계열) → CoinGecko PAXG(국제, 폴백)
   if (slug === "gold-kr") {
     const profile = SYN_PROFILES[slug];
+
+    // 3-a) KRX 금시장 — 진짜 한국 시세 + 일별 시계열
+    const krx = await getKrxGoldDaily(365);
+    if (krx && krx.length >= 5) {
+      const past: Point[] = krx.map((p) => ({ date: p.date, value: round(p.close) }));
+      const latest = past[past.length - 1];
+      // 365일 다 못 채웠으면(휴장일 + 갓 활성화) 합성으로 앞부분 채움
+      const synPast = buildSynthetic(slug, profile);
+      const scaled = scaleToCurrent(synPast, latest.value);
+      const { merged, liveDays } = mergeWithDaily(scaled, past);
+      // 누적 저장은 KRX 일별이 정공법이라 굳이 안 함 (매번 API에서 365일 받음)
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      return {
+        slug,
+        past: merged,
+        forecast,
+        source: "live",
+        sourceName: "krx-gold",
+        pastIsLive: liveDays >= synPast.length,
+        liveDays,
+      };
+    }
+
+    // 3-b) CoinGecko PAXG 폴백 — 국제 시세
     const synPast = buildSynthetic(slug, profile);
     const latest = await getGoldLatest();
     if (latest.live) {

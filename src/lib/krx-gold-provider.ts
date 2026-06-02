@@ -1,34 +1,114 @@
-// KRX 금시장 종가 — 한국거래소 금시장 99.99K 1g 일별 종가.
-// 출처: data.go.kr / KRX 정보데이터시스템 (공공데이터포털 신청 필요).
+// KRX 금시장 종가 — 금융위원회_일반상품시세정보 (data.go.kr)
+// 엔드포인트: GetGeneralProductInfoService/getGoldPriceInfo
+// 갱신: 영업일 익일 13시 이후 (실시간 X)
+// 데이터: 금99.99K_1g / 100g / 1kg 일별 종가·거래량
 //
-// 현재 상태: 인프라 골격. EXPO_PUBLIC_DATA_GO_KR_KEY 발급받으면 활성화.
-// 키 없으면 null 반환 → 호출 측은 CoinGecko PAXG로 폴백.
-//
-// 한국 시세는 국제 시세 + 부가세 10% + 소매 마진을 반영하므로
-// LBMA보다 약간 비쌈. 진짜 "한국 사람이 사는 가격"에 가까움.
+// 한국 시세는 부가세 + 매수/매도 호가 영향이 있어 LBMA(국제) 시세보다 약간 비쌈.
+// 진짜 "한국 사람이 KRX에서 사는 가격"에 가까움.
 
 const KEY = process.env.EXPO_PUBLIC_DATA_GO_KR_KEY;
+const BASE =
+  "https://apis.data.go.kr/1160100/service/GetGeneralProductInfoService";
 
 export type KrxGoldPoint = {
-  date: string; // YYYY-MM-DD
-  closeKrwPerGram: number;
+  date: string;  // YYYY-MM-DD
+  close: number; // 원/g (1g 종목 종가)
+  volume?: number;
+  isinCd?: string;
+  itemName?: string;
 };
 
-// 일별 시계열 fetch (지난 N일)
-// TODO: 키 발급 후 실 엔드포인트 연결.
-// 후보:
-//   1) data.go.kr "한국거래소_KRX 시세정보" 일별 (종목 코드 필요)
-//   2) KRX 정보데이터시스템 (bld=dbms/MDC/STAT/standard/MDCSTAT13501)
-export async function getKrxGoldDaily(days: number): Promise<KrxGoldPoint[] | null> {
+type DataGoKrItem = {
+  basDt?: string;       // YYYYMMDD
+  srtnCd?: string;
+  isinCd?: string;
+  itmsNm?: string;      // "금99.99K_1g"
+  clpr?: string;        // 종가
+  vs?: string;
+  fltRt?: string;
+  mkp?: string;
+  hipr?: string;
+  lopr?: string;
+  trqu?: string;        // 거래량
+  trPrc?: string;
+};
+
+type DataGoKrResponse = {
+  response?: {
+    header?: { resultCode?: string; resultMsg?: string };
+    body?: {
+      items?: { item?: DataGoKrItem[] | DataGoKrItem };
+      numOfRows?: number;
+      pageNo?: number;
+      totalCount?: number;
+    };
+  };
+};
+
+// 지난 N일 KRX 금시장 1g 종가 시계열 (영업일만, 주말·공휴일 누락)
+export async function getKrxGoldDaily(
+  days = 365,
+  itemName = "금99.99K_1g",
+): Promise<KrxGoldPoint[] | null> {
   if (!KEY) return null;
-  // 실제 호출은 키 발급 후 작성.
-  // 예시 스켈레톤:
-  // const url = `https://apis.data.go.kr/.../gold?serviceKey=${KEY}&pageNo=1&numOfRows=${days}&_type=json`;
-  // const res = await fetch(url);
-  // ...
-  return null;
+  try {
+    const end = new Date();
+    const start = new Date(end.getTime() - days * 86400000);
+    const params = new URLSearchParams({
+      serviceKey: KEY,
+      resultType: "json",
+      pageNo: "1",
+      numOfRows: String(Math.min(days + 30, 1000)), // 여유분
+      beginBasDt: ymd(start),
+      endBasDt: ymd(end),
+      itmsNm: itemName,
+    });
+    const url = `${BASE}/getGoldPriceInfo?${params.toString()}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn(`[krx-gold] HTTP ${res.status}`);
+      return null;
+    }
+    const json = (await res.json()) as DataGoKrResponse;
+    const code = json.response?.header?.resultCode;
+    if (code !== "00") {
+      console.warn(`[krx-gold] result ${code}: ${json.response?.header?.resultMsg}`);
+      return null;
+    }
+    const raw = json.response?.body?.items?.item;
+    const items: DataGoKrItem[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
+    const points: KrxGoldPoint[] = [];
+    for (const it of items) {
+      const close = Number(it.clpr);
+      if (!Number.isFinite(close) || close <= 0) continue;
+      if (!it.basDt || it.basDt.length !== 8) continue;
+      const date = `${it.basDt.slice(0, 4)}-${it.basDt.slice(4, 6)}-${it.basDt.slice(6, 8)}`;
+      points.push({
+        date,
+        close: Math.round(close * 100) / 100,
+        volume: Number(it.trqu) || undefined,
+        isinCd: it.isinCd,
+        itemName: it.itmsNm,
+      });
+    }
+    return points.sort((a, b) => a.date.localeCompare(b.date));
+  } catch (e) {
+    console.warn("[krx-gold] error", e);
+    return null;
+  }
+}
+
+export async function getKrxGoldLatest(): Promise<KrxGoldPoint | null> {
+  const list = await getKrxGoldDaily(10); // 최근 10일 (휴장일 고려)
+  if (!list || list.length === 0) return null;
+  return list[list.length - 1];
 }
 
 export function isAvailable(): boolean {
   return Boolean(KEY);
+}
+
+function ymd(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
 }
