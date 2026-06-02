@@ -28,9 +28,11 @@
 
 ## 빌드/배포
 
-- EAS Build 셋업 (eas.json, project id)
+- ~~eas.json 3 프로필(development/preview/production)~~ 완료
+- **`eas init`** — projectId 발급 (사용자가 1회 실행, app.json의 extra.eas.projectId 자동 채움)
 - 아이콘·스플래시 디자인 (현재 placeholder)
 - 앱스토어/플레이스토어 자료 (스크린샷·설명문)
+- iOS 폰 UDID 등록 (development 빌드용)
 
 ## 데이터·모델
 

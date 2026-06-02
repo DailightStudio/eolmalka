@@ -57,10 +57,10 @@ src/
 
 ## 빌드 (EAS)
 
-- `eas build --platform ios` / `--platform android`
-- iOS는 Apple Developer 멤버십 필요 ($99/년)
-- Android는 키스토어만 있으면 됨
-- TestFlight / 내부 테스트 트랙으로 배포 가능
+- 프로필 3개 (`eas.json`): development(본인 폰 dev 빌드) / preview(내부 테스터) / production(스토어)
+- 첫 빌드 전: `eas login` (계정 jaylabs) → `eas init` (projectId 발급) → `app.json` extra.eas.projectId 자동 채워짐
+- iOS: Apple Developer 멤버십 + 폰 UDID 등록 / Android: 키스토어 자동 관리
+- `submit.ios.appleId` = wjs9280@gmail.com (스토어 제출 시)
 
 ## 알려진 제약
 

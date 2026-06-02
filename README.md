@@ -35,13 +35,31 @@ npx expo start
 - Expo Go 앱(iOS/Android)로 QR 스캔 → 즉시 실행
 - `npx expo start --ios` / `--android`로 시뮬레이터·에뮬레이터
 
-## 빌드 (앱스토어 배포)
+## EAS Build (앱스토어 배포)
+
+처음 셋업:
 
 ```bash
 npm install -g eas-cli
-eas login
-eas build --platform ios      # Apple Developer 계정 필요
-eas build --platform android  # Google Play Console 필요
+eas login                          # Expo 계정 (jaylabs)
+eas init                           # app.json의 extra.eas.projectId 자동 채움
+```
+
+빌드 프로필 3개 (`eas.json`):
+
+| 프로필 | 용도 | 명령 |
+|---|---|---|
+| **development** | 백그라운드 fetch·푸시까지 동작하는 dev 빌드. 본인 폰만 | `eas build --profile development --platform ios` |
+| **preview** | 내부 테스터(가족·지인) 100명까지 TestFlight | `eas build --profile preview --platform ios` |
+| **production** | 앱스토어 정식 출시. 버전 자동 증가 | `eas build --profile production --platform ios` |
+
+iOS 빌드 전제: **Apple Developer 멤버십 ($99/년)** + 폰 UDID 등록.
+Mac 불필요 — Expo 클라우드에서 빌드 후 다운로드 링크 제공.
+
+제출:
+
+```bash
+eas submit --profile production --platform ios   # TestFlight → App Store
 ```
 
 ## 폴더

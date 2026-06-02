@@ -3,6 +3,11 @@ node_modules/
 dist/
 web-build/
 
+# EAS
+android/
+ios/
+.eas/
+
 # Native
 *.orig.*
 *.jks

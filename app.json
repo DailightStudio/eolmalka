@@ -2,6 +2,7 @@
   "expo": {
     "name": "얼말까",
     "slug": "eolmalka",
+    "owner": "jaylabs",
     "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "eolmalka",
@@ -31,6 +32,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
     }
   }
 }
