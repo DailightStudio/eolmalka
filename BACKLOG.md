@@ -4,10 +4,12 @@
 
 ## 데이터 연동
 
-- **금** — 한국금거래소 / KRX 금시장. 공식 API 한정적 → 스크래핑 검토 (약관 확인 선행).
+- ~~**금** 국제 현물가~~ — CoinGecko PAXG로 LIVE 연동 완료.
+- **금 (KRX 금시장 종가)** — 진짜 한국 시세(부가세 포함). 공공데이터포털 키 발급 → `krx-gold-provider.ts` 활성화.
 - **항공권** — Travelpayouts 어필리에이트 또는 Amadeus Self-Service. 노선·왕복 최저가 1주일 단위.
 - **휘발유 시도/시군구별** — 오피넷 `avgSidoPrice` 활용.
-- **일별 시세 누적** — AsyncStorage에 매일 한 번씩 적재 → 합성 대신 실 시계열 (저장 한도 고려, 분기별 트림).
+- ~~**일별 시세 누적**~~ — AsyncStorage `series-store.ts` 완료. 백그라운드 fetch마다 누적, 365일 트림.
+- **휘발유 1Y 백필** — `opinet-daily-provider.ts.backfillDays(365)` 1회 실행 (rate limit 주의).
 
 ## 알림
 
@@ -15,6 +17,13 @@
 - **알림 중복 방지** — 카테고리당 발송 이력(마지막 발송 시각) 저장 → 24h 쿨다운
 - **알림 채널 분류** — 목표가 / 통계 신호 / 시스템 (소리 다르게)
 - **즐겨찾기 + 목표가 동기화** — 즐겨찾기 해제 시 목표가도 함께 제거(또는 보존 옵션)
+
+## 뉴스·감성
+
+- ~~Google News RSS + OpenRouter Gemini 감성 분석~~ — 완료 (1h 캐싱)
+- **OpenRouter 키 프록시화** — 현재 EXPO_PUBLIC_으로 클라 노출 상태. server-agent 또는 Supabase Edge Function 프록시로 이관.
+- **장기 분위기 변화 알림** — 어제 bullish → 오늘 bearish 같은 큰 전환 시 푸시
+- **뉴스 카드 탭 → 원문 링크** — Google News URL 같이 fetch
 
 ## UX
 

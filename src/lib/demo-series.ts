@@ -6,6 +6,7 @@
 import { getFxSeries, type FxBase, type FxSource } from "./fx-provider";
 import { getGasLatest } from "./gas-provider";
 import { getGoldLatest } from "./gold-provider";
+import { appendDaily, loadDailySeries, mergeWithDaily } from "./series-store";
 
 export type Point = {
   date: string;
@@ -17,12 +18,12 @@ export type Series = {
   slug: string;
   past: Point[];
   forecast: Point[];
-  // 데이터 출처/상태(상세 페이지의 정직한 표기용)
   source: "live" | "synthetic";
-  // live=true여도 시계열은 합성 스케일일 수 있음 — pastIsLive로 명확히 구분
   sourceName: FxSource | "opinet" | "coingecko-paxg" | "synthetic";
-  // 시계열(past)도 실 시계열인지(true), 합성을 현재가에 스케일한 건지(false)
+  // 시계열(past) 전체가 실 데이터인지(환율) vs 합성 스케일인지(휘발유·금)
   pastIsLive: boolean;
+  // 합성에 누적된 실 데이터가 몇 일 섞였는지 (시계열 누적 표시용)
+  liveDays?: number;
 };
 
 // ── 결정론적 의사난수 (시드 기반, 빌드마다 동일 곡선) ─────
@@ -105,29 +106,52 @@ export async function getSeries(slug: string): Promise<Series> {
     };
   }
 
-  // 2) 휘발유 — 오피넷 현재가 + 합성 1Y 스케일 (시계열은 합성)
+  // 2) 휘발유 — 오피넷 현재가 + 합성 1Y 스케일 + 누적 실 데이터 점진 치환
   if (slug === "gas-petrol") {
     const profile = SYN_PROFILES[slug];
     const synPast = buildSynthetic(slug, profile);
     const latest = await getGasLatest("B027");
     if (latest.live) {
-      const past = scaleToCurrent(synPast, latest.price);
-      const forecast = projectForecast(past, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
-      return { slug, past, forecast, source: "live", sourceName: "opinet", pastIsLive: false };
+      // 오늘 가격을 누적 저장 → 시간이 갈수록 차트 꼬리가 실 데이터로
+      await appendDaily(slug, latest.price);
+      const daily = await loadDailySeries(slug);
+      const scaled = scaleToCurrent(synPast, latest.price);
+      const { merged, liveDays } = mergeWithDaily(scaled, daily);
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      return {
+        slug,
+        past: merged,
+        forecast,
+        source: "live",
+        sourceName: "opinet",
+        pastIsLive: liveDays >= synPast.length, // 365일 다 누적되면 전체 실데이터
+        liveDays,
+      };
     }
     const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
     return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
   }
 
-  // 3) 금 — CoinGecko PAXG 현재가 + 합성 1Y 스케일 (시계열은 합성)
+  // 3) 금 — CoinGecko PAXG 현재가 + 합성 1Y 스케일 + 누적 실 데이터 점진 치환
   if (slug === "gold-kr") {
     const profile = SYN_PROFILES[slug];
     const synPast = buildSynthetic(slug, profile);
     const latest = await getGoldLatest();
     if (latest.live) {
-      const past = scaleToCurrent(synPast, latest.pricePerGramKrw);
-      const forecast = projectForecast(past, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
-      return { slug, past, forecast, source: "live", sourceName: "coingecko-paxg", pastIsLive: false };
+      await appendDaily(slug, latest.pricePerGramKrw);
+      const daily = await loadDailySeries(slug);
+      const scaled = scaleToCurrent(synPast, latest.pricePerGramKrw);
+      const { merged, liveDays } = mergeWithDaily(scaled, daily);
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      return {
+        slug,
+        past: merged,
+        forecast,
+        source: "live",
+        sourceName: "coingecko-paxg",
+        pastIsLive: liveDays >= synPast.length,
+        liveDays,
+      };
     }
     const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
     return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };

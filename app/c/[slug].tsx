@@ -23,6 +23,11 @@ import {
   requestNotificationPermission,
   scheduleLocalAlert,
 } from "@/lib/notifications";
+import {
+  getNewsSentiment,
+  SENTIMENT_STYLE,
+  type NewsResult,
+} from "@/lib/news-provider";
 
 export default function CategoryScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -30,6 +35,8 @@ export default function CategoryScreen() {
   const [series, setSeries] = useState<Series | null>(null);
   const [target, setTargetState] = useState<number | null>(null);
   const [draftTarget, setDraftTarget] = useState<string>("");
+  const [news, setNews] = useState<NewsResult | null>(null);
+  const [newsLoading, setNewsLoading] = useState(false);
 
   const meta = slug ? metaFor(slug) : undefined;
 
@@ -42,6 +49,15 @@ export default function CategoryScreen() {
       const t = targets[slug] ?? null;
       setTargetState(t);
       setDraftTarget(t != null ? String(t) : "");
+
+      // 뉴스는 별도 비동기 — 시세 화면 먼저 뜨게
+      setNewsLoading(true);
+      try {
+        const n = await getNewsSentiment(slug);
+        setNews(n);
+      } finally {
+        setNewsLoading(false);
+      }
     })();
   }, [slug]);
 
@@ -204,6 +220,47 @@ export default function CategoryScreen() {
             {fmt(stats.quartiles.median)} · 3Q {fmt(stats.quartiles.third)} ·
             MA30 {fmt(stats.ma30)}
           </Text>
+        </View>
+
+        <Text style={styles.sectionTitle}>📰 시장 분위기 (뉴스)</Text>
+        <View style={styles.newsCard}>
+          {newsLoading && !news ? (
+            <Text style={styles.muted}>뉴스 분석 중…</Text>
+          ) : news ? (
+            <>
+              <View style={styles.row}>
+                <Text style={styles.newsEmoji}>
+                  {SENTIMENT_STYLE[news.sentiment].emoji}
+                </Text>
+                <Text
+                  style={[
+                    styles.newsLabel,
+                    { color: SENTIMENT_STYLE[news.sentiment].color },
+                  ]}
+                >
+                  {SENTIMENT_STYLE[news.sentiment].label}
+                </Text>
+                {!news.live && (
+                  <Text style={styles.newsFlag}>키 없음</Text>
+                )}
+              </View>
+              <Text style={styles.newsSummary}>{news.summary}</Text>
+              {news.headlines.length > 0 && (
+                <View style={{ marginTop: 10, gap: 4 }}>
+                  {news.headlines.slice(0, 3).map((h, i) => (
+                    <Text key={i} style={styles.newsItem} numberOfLines={2}>
+                      • {h}
+                    </Text>
+                  ))}
+                </View>
+              )}
+              <Text style={styles.tinyMuted}>
+                출처: Google News · 분석: Gemini 2.5 Flash (1시간 캐싱)
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.muted}>뉴스를 가져오지 못했습니다.</Text>
+          )}
         </View>
 
         <Text style={styles.sectionTitle}>🎯 목표가 알림</Text>
@@ -388,4 +445,21 @@ const styles = StyleSheet.create({
     marginTop: 24,
     lineHeight: 16,
   },
+  newsCard: {
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#27272a",
+    padding: 12,
+  },
+  newsEmoji: { fontSize: 18 },
+  newsLabel: { fontSize: 13, fontWeight: "800", marginLeft: 4 },
+  newsFlag: {
+    marginLeft: "auto",
+    fontSize: 9,
+    color: "#71717a",
+    fontWeight: "700",
+  },
+  newsSummary: { color: "#fafafa", fontSize: 14, marginTop: 8, lineHeight: 20 },
+  newsItem: { color: "#a1a1aa", fontSize: 11, lineHeight: 16 },
 });
