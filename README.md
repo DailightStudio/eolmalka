@@ -10,8 +10,8 @@
 
 - **Next.js 16** (App Router) + React 19 + TypeScript 5
 - **Tailwind CSS v4** (`@tailwindcss/postcss`)
-- 외부 API (착수 단계에서 발급·연동):
-  - 환율: 한국은행 ECOS / open exchange rates (폴백)
+- 외부 API:
+  - **환율(현재 LIVE):** Frankfurter (ECB 기준, 무키·무료) — USD/KRW · JPY/KRW. Twelve Data 키 있으면 우선.
   - 주유비: 오피넷 (한국석유공사) OpenAPI
   - 금: 한국금거래소 / KRX 금시장 (공식 API 한정적 → 스크래핑 후보)
   - 항공권: Skyscanner / Amadeus / Travelpayouts 어필리에이트

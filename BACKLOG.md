@@ -4,7 +4,9 @@
 
 ## 데이터 연동 (블로커)
 
-- **환율** — 한국은행 ECOS API 키 발급 → `/api/fx` 엔드포인트. 폴백으로 open exchange rates
+- ~~**환율**~~ — Frankfurter(무키·무료) 연동 완료. USD/KRW · JPY/KRW 실데이터.
+  - 추가 통화(EUR/CNY 등)는 `FX_BASE` 매핑만 늘리면 됨
+  - Twelve Data 옵션 폴백도 포팅됨 (키 있을 때 우선)
 - **주유비** — 오피넷 OpenAPI 키 발급 (회원가입+신청 필요) → 전국·시도·시군구 평균
 - **금** — 한국금거래소 / KRX 금시장. **공식 API 한정적** → 스크래핑 검토 (robots/약관 확인 선행)
 - **항공권** — Skyscanner 파트너 신청 or Amadeus Self-Service or Travelpayouts 어필리에이트. 노선·왕복 최저가 1주일 단위

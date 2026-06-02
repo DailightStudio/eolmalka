@@ -8,18 +8,31 @@ import {
 } from "@/lib/signals";
 import { Sparkline } from "@/components/Sparkline";
 
-export default function HomePage() {
-  const cards = CATEGORY_SLUGS.map((slug) => {
-    const series = getSeries(slug);
-    const meta = CATEGORY_META[slug];
-    const stats = computeStats(series);
-    return { slug, meta, series, stats };
-  });
+export const revalidate = 3600; // 시간당 재생성 — Frankfurter 캐싱과 정렬
+
+export default async function HomePage() {
+  const cards = await Promise.all(
+    CATEGORY_SLUGS.map(async (slug) => {
+      const series = await getSeries(slug);
+      const meta = CATEGORY_META[slug];
+      const stats = computeStats(series);
+      return { slug, meta, series, stats };
+    }),
+  );
+
+  const anyLive = cards.some((c) => c.series.source === "live");
 
   return (
     <main className="mx-auto max-w-md px-5 py-8">
       <header className="mb-6">
-        <p className="text-xs font-bold tracking-widest text-lime-400">얼말까</p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-bold tracking-widest text-lime-400">얼말까</p>
+          <span
+            className={`text-[10px] font-medium ${anyLive ? "text-lime-400" : "text-zinc-500"}`}
+          >
+            {anyLive ? "● 실데이터 (환율)" : "○ 더미 데이터"}
+          </span>
+        </div>
         <h1 className="mt-2 text-2xl font-bold leading-tight">
           지금 살까,
           <br />
@@ -48,8 +61,13 @@ export default function HomePage() {
                     <h2 className="font-semibold text-zinc-100 truncate">
                       {meta.name}
                     </h2>
+                    {series.source === "live" && (
+                      <span className="shrink-0 text-[9px] font-bold text-lime-400">
+                        LIVE
+                      </span>
+                    )}
                     <span
-                      className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${s.text}`}
+                      className={`ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${s.text}`}
                     >
                       {s.label}
                     </span>
@@ -61,9 +79,7 @@ export default function HomePage() {
                     <span className="text-xl font-bold text-zinc-100">
                       {stats.current.toLocaleString()}
                     </span>
-                    <span className="text-[11px] text-zinc-500">
-                      {meta.unit}
-                    </span>
+                    <span className="text-[11px] text-zinc-500">{meta.unit}</span>
                     <span
                       className={`ml-auto text-xs font-semibold ${positive ? "text-rose-400" : "text-lime-400"}`}
                     >
@@ -92,8 +108,8 @@ export default function HomePage() {
       </section>
 
       <p className="mt-10 text-[11px] leading-relaxed text-zinc-600">
-        ※ 위 수치는 결정론적 데모 데이터입니다 (`lib/demo-series.ts`). 실데이터
-        API 연동 전까지는 의사결정에 활용하지 마세요.
+        ※ 환율은 ECB 기반 무료 데이터(Frankfurter), 나머지는 결정론적 더미.
+        통계 신호는 참고용이며 투자 자문이 아닙니다.
       </p>
     </main>
   );

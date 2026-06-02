@@ -1,21 +1,30 @@
 import type { Point, Series } from "./demo-series";
+import {
+  quartilesOf,
+  verdictFromQuartiles,
+  type PriceQuartiles,
+  type PriceVerdict,
+} from "./quartiles";
 
 export type Signal = "buy" | "wait" | "neutral";
 
 export type SeriesStats = {
   current: number;
-  change7d: number;   // %
-  change30d: number;  // %
-  change365d: number; // %
-  ma30: number;       // 30일 이동평균
+  change7d: number;
+  change30d: number;
+  change365d: number;
+  ma30: number;
   signal: Signal;
   signalText: string;
+  // dd-trip price.ts 포팅 — 통계 위치(역대급/평균보다 저렴/평균/비쌈)
+  quartiles: PriceQuartiles;
+  verdict: PriceVerdict;
 };
 
-// 신호 임계치: 단기(=7일 추세) + 위치(현재가 vs 30d MA + 30d 변동률) 조합
-// - buy:  현재가가 MA30 대비 -1.5%↓ 이고 30d 변동률 ≤ -1% (저점권)
-// - wait: 현재가가 MA30 대비 +1.5%↑ 이고 30d 변동률 ≥ +1% (고점권)
-// - 그 외 neutral
+// 신호 산출: quartile verdict + 30d 변동률 조합.
+// - quartile이 great_deal이면 일반적으로 buy
+// - quartile이 high이고 30d 변동률 상승이면 wait
+// - 그 외는 neutral
 export function computeStats(series: Series): SeriesStats {
   const past = series.past;
   const n = past.length;
@@ -30,23 +39,32 @@ export function computeStats(series: Series): SeriesStats {
 
   const ma30 =
     past.slice(-30).reduce((sum, p) => sum + p.value, 0) / Math.min(30, n);
-  const maGap = pct(current, ma30); // 현재가가 MA30 대비 얼마나 위/아래인지
+
+  const values = past.map((p) => p.value);
+  const quartiles = quartilesOf(values);
+  const verdict = verdictFromQuartiles(current, quartiles);
 
   let signal: Signal = "neutral";
-  let signalText = "평이한 흐름";
+  let signalText = "최근 분포의 평균 범위입니다.";
 
-  if (maGap <= -1.5 && change30d <= -1) {
+  if (verdict === "great_deal") {
     signal = "buy";
-    signalText = "최근 30일 저점권 — 지금이 살 타이밍";
-  } else if (maGap >= 1.5 && change30d >= 1) {
+    signalText = "최근 1년 분포의 하위 25% — 통계적 저점권입니다.";
+  } else if (verdict === "good" && change30d <= 0) {
+    signal = "buy";
+    signalText = "중앙값보다 저렴 + 한 달간 하락 — 매수 기회.";
+  } else if (verdict === "high" && change30d >= 1) {
     signal = "wait";
-    signalText = "최근 30일 고점권 — 조금 기다리세요";
+    signalText = "상위 분포 + 한 달간 상승 — 단기 관망.";
+  } else if (verdict === "high") {
+    signal = "wait";
+    signalText = "최근 1년 분포의 상위 구간입니다.";
   } else if (change30d <= -4) {
     signal = "buy";
-    signalText = "한 달간 큰 하락 — 매수 기회";
+    signalText = "한 달간 큰 하락 — 단기 매수 기회.";
   } else if (change30d >= 4) {
     signal = "wait";
-    signalText = "한 달간 급등 — 단기는 관망";
+    signalText = "한 달간 급등 — 단기는 관망.";
   }
 
   return {
@@ -54,9 +72,11 @@ export function computeStats(series: Series): SeriesStats {
     change7d: round1(change7d),
     change30d: round1(change30d),
     change365d: round1(change365d),
-    ma30: Math.round(ma30 * 10) / 10,
+    ma30: Math.round(ma30 * 100) / 100,
     signal,
     signalText,
+    quartiles,
+    verdict,
   };
 }
 
@@ -64,19 +84,16 @@ function pct(now: number, then: number): number {
   if (!then) return 0;
   return ((now - then) / then) * 100;
 }
-
 function round1(v: number): number {
   return Math.round(v * 10) / 10;
 }
 
-// 예측 평균이 현재가 대비 얼마나 변하는지 — 카드 보조 정보로 사용 가능
 export function forecastChange(series: Series): number {
   const past = series.past;
   const current = past[past.length - 1].value;
   const forecast = series.forecast;
   if (!forecast.length) return 0;
-  const avg =
-    forecast.reduce((sum, p) => sum + p.value, 0) / forecast.length;
+  const avg = forecast.reduce((s, p) => s + p.value, 0) / forecast.length;
   return round1(((avg - current) / current) * 100);
 }
 
@@ -104,8 +121,6 @@ export const SIGNAL_STYLE: Record<
   },
 };
 
-// 카테고리 메타데이터 (이름·단위·아이콘 등) — demo-series와 분리되어
-// 실데이터 연결 시에도 그대로 재사용.
 export const CATEGORY_META: Record<
   string,
   { name: string; subtitle: string; unit: string; emoji: string }

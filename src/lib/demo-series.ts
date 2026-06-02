@@ -1,21 +1,26 @@
-// 카테고리별 1년치 일별 시세 + 30일 예측 더미.
-// 실데이터 API 연결 전까지 사용. 시드 기반이라 빌드마다 동일.
+// 카테고리별 1년치 일별 시계열 + 30일 예측.
+// 환율 2개(fx-usd / fx-jpy)는 fx-provider를 통해 실데이터(Frankfurter 무키)를 시도하고,
+// 실패 시 합성으로 폴백 — `live`=true면 실데이터.
+// 나머지 카테고리(주유·금·항공권)는 결정론적 더미 시계열.
+
+import { getFxSeries, type FxBase, type FxSource } from "./fx-provider";
 
 export type Point = {
-  // YYYY-MM-DD
   date: string;
   value: number;
-  // true면 예측 구간(파선 표시용)
   forecast?: boolean;
 };
 
 export type Series = {
   slug: string;
-  past: Point[];      // 과거 1년 (오늘 포함)
-  forecast: Point[];  // +30일 예측
+  past: Point[];
+  forecast: Point[];
+  // 데이터 출처/상태(상세 페이지의 정직한 표기용)
+  source: "live" | "synthetic";
+  sourceName: FxSource | "synthetic";
 };
 
-// 결정론적 의사난수 — 빌드마다 같은 곡선
+// ── 결정론적 의사난수 (시드 기반, 빌드마다 동일 곡선) ─────
 function seeded(seed: number): () => number {
   let s = seed >>> 0;
   return () => {
@@ -23,7 +28,6 @@ function seeded(seed: number): () => number {
     return s / 0xffffffff;
   };
 }
-
 function hash(str: string): number {
   let h = 2166136261;
   for (let i = 0; i < str.length; i++) {
@@ -33,78 +37,124 @@ function hash(str: string): number {
   return h >>> 0;
 }
 
-type Profile = {
+type SyntheticProfile = {
   base: number;
-  // 연간 진폭(±%)
   yearlyAmp: number;
-  // 단기 노이즈 진폭(±%)
   noiseAmp: number;
-  // 추세(연간 +%/-%)
   trend: number;
-  // 예측 방향(+: 더 비싸짐 / -: 더 싸짐)
   forecastDir: number;
 };
 
-const PROFILES: Record<string, Profile> = {
-  "fx-usd":     { base: 1376, yearlyAmp: 0.04, noiseAmp: 0.008, trend: 0.01,  forecastDir: -0.012 },
-  "fx-jpy":    { base: 894,  yearlyAmp: 0.05, noiseAmp: 0.010, trend: -0.02, forecastDir: 0.015 },
-  "gas-petrol": { base: 1652, yearlyAmp: 0.06, noiseAmp: 0.004, trend: 0.00,  forecastDir: 0.003 },
+const SYN_PROFILES: Record<string, SyntheticProfile> = {
+  "gas-petrol": { base: 1652,  yearlyAmp: 0.06, noiseAmp: 0.004, trend: 0.00, forecastDir: 0.003 },
   "gold-kr":    { base: 125400, yearlyAmp: 0.08, noiseAmp: 0.006, trend: 0.15, forecastDir: 0.02 },
   "air-nrt":    { base: 220000, yearlyAmp: 0.18, noiseAmp: 0.025, trend: 0.00, forecastDir: -0.04 },
   "air-tpe":    { base: 300000, yearlyAmp: 0.20, noiseAmp: 0.030, trend: 0.02, forecastDir: 0.06 },
 };
 
+// 환율 카테고리 → Frankfurter base 통화 매핑
+const FX_BASE: Record<string, FxBase> = {
+  "fx-usd": "USD",
+  "fx-jpy": "JPY",
+};
+
+const DAYS = 365;
+const FORECAST_DAYS = 30;
+
 function addDays(d: Date, n: number): Date {
   const r = new Date(d);
-  r.setDate(r.getDate() + n);
+  r.setUTCDate(r.getUTCDate() + n);
   return r;
 }
-
 function ymd(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
 }
 
-const TODAY = new Date("2026-06-02"); // 빌드 결정성 + 메모리의 currentDate와 정렬
+export async function getSeries(slug: string): Promise<Series> {
+  // 1) 환율 — 실데이터 시도
+  const fxBase = FX_BASE[slug];
+  if (fxBase) {
+    const fx = await getFxSeries(fxBase, DAYS);
+    if (fx.live) {
+      const past = fx.past.map((p) => ({ date: p.date, value: round(p.value) }));
+      const forecast = projectForecast(past, FORECAST_DAYS, slug);
+      return {
+        slug,
+        past,
+        forecast,
+        source: "live",
+        sourceName: fx.source,
+      };
+    }
+    // 실데이터 실패 → 합성도 fx-provider가 만들어 줬으니 그대로 사용
+    const past = fx.past.map((p) => ({ date: p.date, value: round(p.value) }));
+    const forecast = projectForecast(past, FORECAST_DAYS, slug);
+    return {
+      slug,
+      past,
+      forecast,
+      source: "synthetic",
+      sourceName: fx.source,
+    };
+  }
 
-export function getSeries(slug: string): Series {
-  const profile = PROFILES[slug];
-  if (!profile) return { slug, past: [], forecast: [] };
+  // 2) 나머지 — 결정론적 합성
+  const profile = SYN_PROFILES[slug];
+  if (!profile) {
+    return { slug, past: [], forecast: [], source: "synthetic", sourceName: "synthetic" };
+  }
 
   const rand = seeded(hash(slug));
-  const days = 365;
-
+  const today = new Date();
   const past: Point[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const date = addDays(TODAY, -i);
-    const t = (days - 1 - i) / (days - 1); // 0..1
-    const seasonal = Math.sin((t * Math.PI * 2) + hash(slug) % 100) * profile.yearlyAmp;
-    const trend = (t - 0.5) * profile.trend; // 0 → trend
+  for (let i = DAYS - 1; i >= 0; i--) {
+    const date = addDays(today, -i);
+    const t = (DAYS - 1 - i) / (DAYS - 1);
+    const seasonal = Math.sin((t * Math.PI * 2) + (hash(slug) % 100)) * profile.yearlyAmp;
+    const trend = (t - 0.5) * profile.trend;
     const noise = (rand() - 0.5) * 2 * profile.noiseAmp;
     const value = profile.base * (1 + seasonal + trend + noise);
-    past.push({ date: ymd(date), value: round(value, profile.base) });
+    past.push({ date: ymd(date), value: round(value) });
   }
-
-  // 예측 30일 — 마지막 가격에서 출발해 forecastDir 방향으로 천천히
-  const last = past[past.length - 1].value;
-  const forecast: Point[] = [];
-  for (let i = 1; i <= 30; i++) {
-    const date = addDays(TODAY, i);
-    const t = i / 30;
-    const drift = profile.forecastDir * t;
-    const noise = (rand() - 0.5) * 2 * profile.noiseAmp * 0.6;
-    const value = last * (1 + drift + noise);
-    forecast.push({ date: ymd(date), value: round(value, profile.base), forecast: true });
-  }
-
-  return { slug, past, forecast };
+  const forecast = projectForecast(past, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+  return { slug, past, forecast, source: "synthetic", sourceName: "synthetic" };
 }
 
-function round(v: number, base: number): number {
-  // 단위가 큰 자산은 정수, 작은 자산은 소수 한 자리
-  if (base >= 10000) return Math.round(v);
-  if (base >= 1000) return Math.round(v);
-  return Math.round(v * 10) / 10;
+// 예측: 환율은 단순 외삽(최근 30일 추세 + 평균회귀), 합성은 profile.forecastDir 사용
+function projectForecast(
+  past: Point[],
+  days: number,
+  slug: string,
+  forecastDir?: number,
+  noiseAmp?: number,
+): Point[] {
+  if (past.length === 0) return [];
+  const last = past[past.length - 1].value;
+  const lastDate = new Date(past[past.length - 1].date);
+  const rand = seeded(hash(slug + "fc"));
+  const noise = noiseAmp ?? 0.01;
+
+  // 환율: 최근 30일 변화율을 평균회귀로 절반 정도 되돌려 예측
+  let drift = forecastDir;
+  if (drift === undefined) {
+    const ref = past[Math.max(0, past.length - 31)].value;
+    const recentPct = (last - ref) / ref;
+    drift = -recentPct * 0.4; // 절반 정도 평균회귀
+  }
+
+  const out: Point[] = [];
+  for (let i = 1; i <= days; i++) {
+    const date = addDays(lastDate, i);
+    const t = i / days;
+    const value = last * (1 + drift * t + (rand() - 0.5) * 2 * noise * 0.5);
+    out.push({ date: ymd(date), value: round(value), forecast: true });
+  }
+  return out;
+}
+
+function round(v: number): number {
+  if (v >= 10000) return Math.round(v);
+  if (v >= 1000) return Math.round(v);
+  return Math.round(v * 100) / 100;
 }
