@@ -21,7 +21,9 @@
 ## UX
 
 - ~~카테고리 상세 차트~~ — SVG Sparkline 자체 구현
-- **가격 알림 등록** — PWA Web Push (manifest + Service Worker + VAPID + 구독 API + Cron)
+- **가격 알림 등록 (PWA Web Push)**
+  - ~~manifest + 아이콘 + Service Worker + VAPID 키 + 구독 UI + 구독 API~~ 완료
+  - 다음: 구독 저장(Vercel KV) + 가격 체크 Cron + 발송 API(`web-push`) + 사용자별 목표가/임계치 설정 UI
 - ~~즐겨찾기 카테고리 상단 고정~~ — localStorage 토글, 정렬도 (기본/신호/변동률)
 - 다국어 (en, ja) — 환율·항공권은 외국인 수요도 있음
 - 휘발유 시도/시군구별 보기 (오피넷 `avgSidoPrice`)

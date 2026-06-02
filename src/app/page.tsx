@@ -1,6 +1,7 @@
 import { getSeries } from "@/lib/demo-series";
 import { CATEGORY_META, CATEGORY_SLUGS, computeStats } from "@/lib/signals";
 import { CardList, type CardData } from "@/components/CardList";
+import { NotifyButton } from "@/components/NotifyButton";
 
 export const revalidate = 3600;
 
@@ -53,6 +54,19 @@ export default async function HomePage() {
       </header>
 
       <CardList cards={cards} />
+
+      <section className="mt-8">
+        <h2 className="text-sm font-semibold text-zinc-300">
+          홈 화면 + 가격 알림
+        </h2>
+        <p className="mt-1 text-[11px] text-zinc-500">
+          알림을 켜면 즐겨찾기 카테고리에 신호가 뜰 때 폰으로 푸시. iOS는
+          공유 → 홈 화면 추가 후 활성화.
+        </p>
+        <div className="mt-3">
+          <NotifyButton />
+        </div>
+      </section>
 
       <p className="mt-10 text-[11px] leading-relaxed text-zinc-600">
         ※ 환율은 Frankfurter(ECB), 휘발유는 오피넷. 그 외는 데모. 통계 신호는
