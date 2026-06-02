@@ -242,7 +242,9 @@ export default function CategoryScreen() {
         <Text style={styles.footnote}>
           ※{" "}
           {series.source === "live"
-            ? `데이터 출처: ${series.sourceName}.`
+            ? series.pastIsLive
+              ? `데이터 출처: ${series.sourceName} (시계열·현재가 모두 실데이터).`
+              : `데이터 출처: ${series.sourceName} (현재가는 실데이터, 1년 시계열은 그 현재가에 비례 스케일한 합성).`
             : "데모 화면 — 실데이터 미연결."}{" "}
           통계 신호는 참고용이며 투자 자문이 아닙니다.
         </Text>

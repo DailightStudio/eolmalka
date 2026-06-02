@@ -5,6 +5,7 @@
 
 import { getFxSeries, type FxBase, type FxSource } from "./fx-provider";
 import { getGasLatest } from "./gas-provider";
+import { getGoldLatest } from "./gold-provider";
 
 export type Point = {
   date: string;
@@ -18,7 +19,10 @@ export type Series = {
   forecast: Point[];
   // 데이터 출처/상태(상세 페이지의 정직한 표기용)
   source: "live" | "synthetic";
-  sourceName: FxSource | "opinet" | "synthetic";
+  // live=true여도 시계열은 합성 스케일일 수 있음 — pastIsLive로 명확히 구분
+  sourceName: FxSource | "opinet" | "coingecko-paxg" | "synthetic";
+  // 시계열(past)도 실 시계열인지(true), 합성을 현재가에 스케일한 건지(false)
+  pastIsLive: boolean;
 };
 
 // ── 결정론적 의사난수 (시드 기반, 빌드마다 동일 곡선) ─────
@@ -86,9 +90,9 @@ export async function getSeries(slug: string): Promise<Series> {
         forecast,
         source: "live",
         sourceName: fx.source,
+        pastIsLive: true, // Frankfurter/Twelve Data는 일별 실 시계열
       };
     }
-    // 실데이터 실패 → 합성도 fx-provider가 만들어 줬으니 그대로 사용
     const past = fx.past.map((p) => ({ date: p.date, value: round(p.value) }));
     const forecast = projectForecast(past, FORECAST_DAYS, slug);
     return {
@@ -97,39 +101,58 @@ export async function getSeries(slug: string): Promise<Series> {
       forecast,
       source: "synthetic",
       sourceName: fx.source,
+      pastIsLive: false,
     };
   }
 
-  // 2) 휘발유 — 오피넷 현재가 가져와서 합성 시계열의 마지막 값에 스케일 맞춤
+  // 2) 휘발유 — 오피넷 현재가 + 합성 1Y 스케일 (시계열은 합성)
   if (slug === "gas-petrol") {
     const profile = SYN_PROFILES[slug];
-    const synBase = profile.base;
     const synPast = buildSynthetic(slug, profile);
     const latest = await getGasLatest("B027");
     if (latest.live) {
-      // 합성의 마지막 값 → 실 현재가로 모든 값 비례 조정
-      const synLast = synPast[synPast.length - 1].value;
-      const scale = latest.price / synLast;
-      const past = synPast.map((p, i) =>
-        i === synPast.length - 1
-          ? { date: p.date, value: round(latest.price) }
-          : { date: p.date, value: round(p.value * scale) },
-      );
+      const past = scaleToCurrent(synPast, latest.price);
       const forecast = projectForecast(past, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
-      return { slug, past, forecast, source: "live", sourceName: "opinet" };
+      return { slug, past, forecast, source: "live", sourceName: "opinet", pastIsLive: false };
     }
     const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
-    return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic" };
+    return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
   }
 
-  // 3) 나머지 — 결정론적 합성
+  // 3) 금 — CoinGecko PAXG 현재가 + 합성 1Y 스케일 (시계열은 합성)
+  if (slug === "gold-kr") {
+    const profile = SYN_PROFILES[slug];
+    const synPast = buildSynthetic(slug, profile);
+    const latest = await getGoldLatest();
+    if (latest.live) {
+      const past = scaleToCurrent(synPast, latest.pricePerGramKrw);
+      const forecast = projectForecast(past, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      return { slug, past, forecast, source: "live", sourceName: "coingecko-paxg", pastIsLive: false };
+    }
+    const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+    return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
+  }
+
+  // 4) 나머지 — 결정론적 합성
   const profile = SYN_PROFILES[slug];
   if (!profile) {
-    return { slug, past: [], forecast: [], source: "synthetic", sourceName: "synthetic" };
+    return { slug, past: [], forecast: [], source: "synthetic", sourceName: "synthetic", pastIsLive: false };
   }
   const past = buildSynthetic(slug, profile);
   const forecast = projectForecast(past, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
-  return { slug, past, forecast, source: "synthetic", sourceName: "synthetic" };
+  return { slug, past, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
+}
+
+// 합성 시계열을 실 현재가에 비례 스케일 (마지막 값 = 현재가, 나머지는 비율 유지)
+function scaleToCurrent(synPast: Point[], currentValue: number): Point[] {
+  const synLast = synPast[synPast.length - 1].value;
+  if (!synLast) return synPast;
+  const scale = currentValue / synLast;
+  return synPast.map((p, i) =>
+    i === synPast.length - 1
+      ? { date: p.date, value: round(currentValue) }
+      : { date: p.date, value: round(p.value * scale) },
+  );
 }
 
 function buildSynthetic(slug: string, profile: SyntheticProfile): Point[] {
