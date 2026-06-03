@@ -14,6 +14,7 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
+import { AdBanner } from "@/components/AdBanner";
 import { Sparkline } from "@/components/Sparkline";
 import { backtestForecast, getSeries, type Series } from "@/lib/demo-series";
 import {
@@ -726,6 +727,8 @@ export default function CategoryScreen() {
             </Pressable>
           </View>
         </View>
+
+        <AdBanner />
 
         <Text style={styles.footnote}>
           통계 신호는 참고용이며 투자 자문이 아닙니다.{"\n"}© JayLabs

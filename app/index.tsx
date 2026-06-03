@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { Link, useFocusEffect } from "expo-router";
+import { AdBanner } from "@/components/AdBanner";
 import { Sparkline } from "@/components/Sparkline";
 import { iconSourceFor } from "@/lib/icon-sources";
 import { getSeries, type Series } from "@/lib/demo-series";
@@ -259,6 +260,7 @@ export default function HomeScreen() {
       }
       ListFooterComponent={
         <View>
+          <AdBanner />
           <Link href="/add" asChild>
             <Pressable style={styles.addBtn}>
               <Text style={styles.addBtnText}>{t("home.add")}</Text>
