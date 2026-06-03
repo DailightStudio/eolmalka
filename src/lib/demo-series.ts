@@ -261,15 +261,21 @@ async function getSeriesRaw(slug: string): Promise<Series> {
     return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
   }
 
-  // 2'') LPG — KRX 미지원, 오피넷 현재가 + 합성 시계열
+  // 2'') LPG — KRX 미지원, 오피넷 일별 백필 누적 (gas-petrol 2-b 방식과 동일)
   if (slug === "gas-lpg") {
     const profile = SYN_PROFILES[slug];
     const synPast = buildSynthetic(slug, profile);
     const latest = await getGasLatest("C004");
+    void backfillChunk("gas-lpg", "C004").catch((e) =>
+      console.warn("[opinet backfill]", e),
+    );
     if (latest.live) {
+      await appendDaily(slug, latest.price);
+      const daily = await loadDailySeries(slug);
       const scaled = scaleToCurrent(synPast, latest.price);
-      const forecast = projectForecast(scaled, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
-      return { slug, past: scaled, forecast, source: "live", sourceName: "opinet", pastIsLive: false, liveDays: 0 };
+      const { merged, liveDays } = mergeWithDaily(scaled, daily);
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      return { slug, past: merged, forecast, source: "live", sourceName: "opinet", pastIsLive: liveDays >= synPast.length, liveDays };
     }
     const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
     return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };

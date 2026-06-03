@@ -12,16 +12,18 @@ const TARGET_DAYS = 365;
 const CHUNK_DAYS = 30;     // 1회 백필당 처리할 일자 수
 const CALL_DELAY_MS = 200; // 호출간 간격
 
+export type OpinetDailyProduct = "B027" | "D047" | "C004";
+
 export type OpinetDailyPoint = {
   date: string;        // YYYY-MM-DD
   price: number;       // 원/L (전국 평균)
-  product: "B027" | "D047";
+  product: OpinetDailyProduct;
 };
 
 // 특정 일자의 전국 평균 — yyyymmdd (예: "20260603")
 export async function getOpinetDailyPrice(
   yyyymmdd: string,
-  product: "B027" | "D047" = "B027",
+  product: OpinetDailyProduct = "B027",
 ): Promise<OpinetDailyPoint | null> {
   if (!KEY) return null;
   try {
@@ -51,7 +53,7 @@ export async function getOpinetDailyPrice(
 // 백필: 지난 N일 일자별 가격 일괄 수집 (rate limit 주의 — 호출간 200ms)
 export async function backfillDays(
   days: number,
-  product: "B027" | "D047" = "B027",
+  product: OpinetDailyProduct = "B027",
 ): Promise<OpinetDailyPoint[]> {
   const out: OpinetDailyPoint[] = [];
   const today = new Date();
@@ -92,7 +94,7 @@ async function saveProgress(slug: string, n: number): Promise<void> {
 // 반환: 이번에 추가된 포인트 수.
 export async function backfillChunk(
   slug = "gas-petrol",
-  product: "B027" | "D047" = "B027",
+  product: OpinetDailyProduct = "B027",
 ): Promise<number> {
   if (!KEY) return 0;
   const done = await loadProgress(slug);
