@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
-import { ADDABLE_CURRENCIES } from "@/lib/signals";
+import { ADDABLE_CURRENCIES, ADDABLE_FLIGHTS } from "@/lib/signals";
 import {
   addUserCategory,
   loadUserCategories,
@@ -18,37 +17,27 @@ import {
 export default function AddCategoryScreen() {
   const router = useRouter();
   const [user, setUser] = useState<string[]>([]);
-  const [query, setQuery] = useState("");
 
   useEffect(() => {
     void (async () => setUser(await loadUserCategories()))();
   }, []);
 
-  const toggle = useCallback(async (code: string) => {
-    if (user.includes(code)) {
-      const next = await removeUserCategory(code);
-      setUser(next);
-    } else {
-      const next = await addUserCategory(code);
-      setUser(next);
-    }
-  }, [user]);
+  const toggle = useCallback(
+    async (id: string) => {
+      if (user.includes(id)) {
+        const next = await removeUserCategory(id);
+        setUser(next);
+      } else {
+        const next = await addUserCategory(id);
+        setUser(next);
+      }
+    },
+    [user],
+  );
 
-  // 검색 + 정렬: 추가된 것 위로, 그 다음 검색 매칭
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const matches = (c: typeof ADDABLE_CURRENCIES[number]) =>
-      !q ||
-      c.code.toLowerCase().includes(q) ||
-      c.korean.toLowerCase().includes(q);
-    const result = ADDABLE_CURRENCIES.filter(matches);
-    result.sort((a, b) => {
-      const aOn = user.includes(a.code) ? 0 : 1;
-      const bOn = user.includes(b.code) ? 0 : 1;
-      return aOn - bOn;
-    });
-    return result;
-  }, [query, user]);
+  const totalSelected =
+    ADDABLE_CURRENCIES.filter((c) => user.includes(c.code)).length +
+    ADDABLE_FLIGHTS.filter((f) => user.includes(f.slug)).length;
 
   return (
     <>
@@ -63,68 +52,69 @@ export default function AddCategoryScreen() {
           ),
         }}
       />
-      <View style={styles.container}>
-        <View style={styles.headerRow}>
-          <Text style={styles.note}>
-            관심 통화 선택 (Frankfurter ECB 실시간)
-          </Text>
-          {user.length > 0 && (
-            <Text style={styles.countTag}>{user.length}개 선택</Text>
-          )}
-        </View>
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="검색 (예: 유로, EUR)"
-          placeholderTextColor="#52525b"
-          autoCapitalize="characters"
-          style={styles.search}
-        />
-        <FlatList
-          data={filtered}
-          keyExtractor={(c) => c.code}
-          contentContainerStyle={{ paddingBottom: 40 }}
-          ListEmptyComponent={
-            <Text style={styles.empty}>일치하는 통화가 없습니다.</Text>
-          }
-          renderItem={({ item }) => {
-            const active = user.includes(item.code);
-            return (
-              <Pressable
-                style={[styles.row, active && styles.rowActive]}
-                onPress={() => toggle(item.code)}
-              >
-                <Text style={styles.emoji}>{item.emoji}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{item.korean}</Text>
-                  <Text style={styles.sub}>{item.code}/KRW</Text>
-                </View>
-                <View
-                  style={[styles.check, active && styles.checkActive]}
-                >
-                  {active && <Text style={styles.checkMark}>✓</Text>}
-                </View>
-              </Pressable>
-            );
-          }}
-        />
-      </View>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+        {totalSelected > 0 && (
+          <View style={styles.countRow}>
+            <Text style={styles.countTag}>{totalSelected}개 선택됨</Text>
+          </View>
+        )}
+
+        {/* ─── 통화 섹션 ─── */}
+        <Text style={styles.sectionHeader}>통화</Text>
+        <Text style={styles.sectionNote}>Frankfurter (ECB) 실시간</Text>
+        {ADDABLE_CURRENCIES.map((item) => {
+          const active = user.includes(item.code);
+          return (
+            <Pressable
+              key={item.code}
+              style={[styles.row, active && styles.rowActive]}
+              onPress={() => toggle(item.code)}
+            >
+              <Text style={styles.emoji}>{item.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{item.korean}</Text>
+                <Text style={styles.sub}>{item.code}/KRW</Text>
+              </View>
+              <View style={[styles.check, active && styles.checkActive]}>
+                {active && <Text style={styles.checkMark}>✓</Text>}
+              </View>
+            </Pressable>
+          );
+        })}
+
+        {/* ─── 항공권 섹션 ─── */}
+        <Text style={[styles.sectionHeader, { marginTop: 24 }]}>항공권</Text>
+        <Text style={styles.sectionNote}>Travelpayouts 이달 최저가 중앙값 (인천 출발)</Text>
+        {ADDABLE_FLIGHTS.map((item) => {
+          const active = user.includes(item.slug);
+          return (
+            <Pressable
+              key={item.slug}
+              style={[styles.row, active && styles.rowActive]}
+              onPress={() => toggle(item.slug)}
+            >
+              <Text style={styles.emoji}>{item.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{item.korean}</Text>
+                <Text style={styles.sub}>{item.destination} 왕복</Text>
+              </View>
+              <View style={[styles.check, active && styles.checkActive]}>
+                {active && <Text style={styles.checkMark}>✓</Text>}
+              </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0f17", padding: 16 },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  note: {
-    flex: 1,
-    color: "#a1a1aa",
-    fontSize: 12,
-    lineHeight: 18,
+  container: { flex: 1, backgroundColor: "#0b0f17", paddingHorizontal: 16 },
+  countRow: {
+    alignItems: "flex-end",
+    paddingTop: 12,
+    marginBottom: 4,
   },
   countTag: {
     color: "#a3e635",
@@ -136,22 +126,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(132,204,22,0.4)",
   },
-  search: {
-    backgroundColor: "#18181b",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#27272a",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  sectionHeader: {
     color: "#fafafa",
     fontSize: 14,
-    marginBottom: 12,
+    fontWeight: "700",
+    marginTop: 20,
+    marginBottom: 2,
   },
-  empty: {
+  sectionNote: {
     color: "#52525b",
-    fontSize: 12,
-    textAlign: "center",
-    paddingVertical: 24,
+    fontSize: 11,
+    marginBottom: 10,
   },
   row: {
     flexDirection: "row",

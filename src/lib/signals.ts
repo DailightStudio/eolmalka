@@ -372,15 +372,6 @@ const CATEGORY_BASE: Record<string, { emoji: string; unitKey: string }> = {
   "gold-kr":    { emoji: "🪙", unitKey: "cat.unit.perG" },
   "air-nrt":    { emoji: "✈️", unitKey: "cat.unit.krw" },
   "air-tpe":    { emoji: "✈️", unitKey: "cat.unit.krw" },
-  "air-kix":    { emoji: "✈️", unitKey: "cat.unit.krw" },
-  "air-fuk":    { emoji: "✈️", unitKey: "cat.unit.krw" },
-  "air-cts":    { emoji: "✈️", unitKey: "cat.unit.krw" },
-  "air-bkk":    { emoji: "✈️", unitKey: "cat.unit.krw" },
-  "air-sin":    { emoji: "✈️", unitKey: "cat.unit.krw" },
-  "air-hkg":    { emoji: "✈️", unitKey: "cat.unit.krw" },
-  "air-dps":    { emoji: "✈️", unitKey: "cat.unit.krw" },
-  "air-cdg":    { emoji: "✈️", unitKey: "cat.unit.krw" },
-  "air-lax":    { emoji: "✈️", unitKey: "cat.unit.krw" },
 };
 
 export const CATEGORY_SLUGS = Object.keys(CATEGORY_BASE);
@@ -407,8 +398,29 @@ export const ADDABLE_CURRENCIES: Array<{
   { code: "PHP", korean: "필리핀페소", emoji: "💵" },
 ];
 
+export const ADDABLE_FLIGHTS: Array<{
+  slug: string;
+  korean: string;
+  emoji: string;
+  destination: string;
+}> = [
+  { slug: "air-kix", korean: "오사카", emoji: "✈️", destination: "ICN→KIX" },
+  { slug: "air-fuk", korean: "후쿠오카", emoji: "✈️", destination: "ICN→FUK" },
+  { slug: "air-cts", korean: "삿포로", emoji: "✈️", destination: "ICN→CTS" },
+  { slug: "air-bkk", korean: "방콕", emoji: "✈️", destination: "ICN→BKK" },
+  { slug: "air-sin", korean: "싱가포르", emoji: "✈️", destination: "ICN→SIN" },
+  { slug: "air-hkg", korean: "홍콩", emoji: "✈️", destination: "ICN→HKG" },
+  { slug: "air-dps", korean: "발리", emoji: "✈️", destination: "ICN→DPS" },
+  { slug: "air-cdg", korean: "파리", emoji: "✈️", destination: "ICN→CDG" },
+  { slug: "air-lax", korean: "LA", emoji: "✈️", destination: "ICN→LAX" },
+];
+
 const CURRENCY_LOOKUP = new Map(
   ADDABLE_CURRENCIES.map((c) => [c.code, c]),
+);
+
+const FLIGHT_LOOKUP = new Map(
+  ADDABLE_FLIGHTS.map((f) => [f.slug, f]),
 );
 
 // 사용자 정의 fx-XYZ 슬러그에 대한 메타 동적 생성 (locale 반영)
@@ -420,6 +432,16 @@ export function metaFor(slug: string): CategoryMeta | undefined {
       subtitle: t(`cat.${slug}.sub`),
       unit: t(base.unitKey),
       emoji: base.emoji,
+    };
+  }
+  // 사용자가 추가한 항공권 노선 (CATEGORY_BASE 미포함) — i18n 라벨 키는 이미 존재
+  const flight = FLIGHT_LOOKUP.get(slug);
+  if (flight) {
+    return {
+      name: t(`cat.${slug}.name`),
+      subtitle: t(`cat.${slug}.sub`),
+      unit: t("cat.unit.krw"),
+      emoji: flight.emoji,
     };
   }
   const m = slug.match(/^fx-([a-z]{3})$/);
@@ -439,7 +461,8 @@ export function metaFor(slug: string): CategoryMeta | undefined {
 }
 
 export function allSlugs(userCurrencies: string[]): string[] {
-  const user = userCurrencies.map((c) => `fx-${c.toLowerCase()}`);
-  // 시스템 슬러그 다음에 사용자 정의
+  const user = userCurrencies.map((c) =>
+    c.includes("-") ? c : `fx-${c.toLowerCase()}`,
+  );
   return [...CATEGORY_SLUGS, ...user];
 }

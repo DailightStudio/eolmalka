@@ -142,7 +142,7 @@ export async function loadUserCategories(): Promise<string[]> {
 
 export async function addUserCategory(base: string): Promise<string[]> {
   const list = await loadUserCategories();
-  const code = base.toUpperCase();
+  const code = base.includes("-") ? base : base.toUpperCase();
   if (!list.includes(code)) list.push(code);
   try {
     await AsyncStorage.setItem(USER_CATS, JSON.stringify(list));
@@ -152,7 +152,7 @@ export async function addUserCategory(base: string): Promise<string[]> {
 
 export async function removeUserCategory(base: string): Promise<string[]> {
   const list = await loadUserCategories();
-  const code = base.toUpperCase();
+  const code = base.includes("-") ? base : base.toUpperCase();
   const next = list.filter((c) => c !== code);
   try {
     await AsyncStorage.setItem(USER_CATS, JSON.stringify(next));
