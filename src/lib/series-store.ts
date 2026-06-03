@@ -85,3 +85,22 @@ export async function clearDailySeries(slug: string): Promise<void> {
     await AsyncStorage.removeItem(key(slug));
   } catch {}
 }
+
+// 백필용: 여러 일자 한 번에 저장 (날짜별 dedup, 최신값 우선).
+// appendDaily를 N번 부르면 매번 직렬화/역직렬화 → bulk로 한 번에.
+export async function bulkAppendDaily(slug: string, points: Point[]): Promise<Point[]> {
+  if (points.length === 0) return loadDailySeries(slug);
+  const list = await loadDailySeries(slug);
+  const map = new Map(list.map((p) => [p.date, p.value] as const));
+  for (const p of points) {
+    if (!p || typeof p.date !== "string" || !Number.isFinite(p.value) || p.value <= 0) continue;
+    map.set(p.date, p.value);
+  }
+  const merged: Point[] = Array.from(map, ([date, value]) => ({ date, value }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const trimmed = merged.length > MAX_DAYS ? merged.slice(-MAX_DAYS) : merged;
+  try {
+    await AsyncStorage.setItem(key(slug), JSON.stringify(trimmed));
+  } catch {}
+  return trimmed;
+}

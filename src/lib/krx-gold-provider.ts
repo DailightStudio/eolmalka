@@ -65,20 +65,25 @@ async function fetchKrxGoldDailyUncached(
   days: number,
   itemName: string,
 ): Promise<KrxGoldPoint[] | null> {
-  if (!KEY) return null;
+  if (!KEY) {
+    console.warn("[krx-gold] EXPO_PUBLIC_DATA_GO_KR_KEY 미설정 → PAXG 폴백");
+    return null;
+  }
   try {
     const end = new Date();
     const start = new Date(end.getTime() - days * 86400000);
-    const params = new URLSearchParams({
-      serviceKey: KEY,
-      resultType: "json",
-      pageNo: "1",
-      numOfRows: String(Math.min(days + 30, 1000)),
-      beginBasDt: ymd(start),
-      endBasDt: ymd(end),
-      likeItmsNm: itemName, // 부분 일치 (공백·표기 변동 흡수)
-    });
-    const url = `${BASE}/getGoldPriceInfo?${params.toString()}`;
+    // URLSearchParams 대신 명시적 encodeURIComponent — RN 폴리필 의존 줄이기.
+    // 키에 +, /, = 같은 base64 문자가 있어 percent-encoding 필수.
+    const q = [
+      `serviceKey=${encodeURIComponent(KEY)}`,
+      `resultType=json`,
+      `pageNo=1`,
+      `numOfRows=${Math.min(days + 30, 1000)}`,
+      `beginBasDt=${ymd(start)}`,
+      `endBasDt=${ymd(end)}`,
+      `likeItmsNm=${encodeURIComponent(itemName)}`, // 부분 일치 (공백·표기 변동 흡수)
+    ].join("&");
+    const url = `${BASE}/getGoldPriceInfo?${q}`;
     const res = await fetch(url);
     if (!res.ok) {
       console.warn(`[krx-gold] HTTP ${res.status}`);
@@ -87,11 +92,15 @@ async function fetchKrxGoldDailyUncached(
     const json = (await res.json()) as DataGoKrResponse;
     const code = json.response?.header?.resultCode;
     if (code !== "00") {
-      console.warn(`[krx-gold] result ${code}: ${json.response?.header?.resultMsg}`);
+      console.warn(`[krx-gold] result ${code}: ${json.response?.header?.resultMsg} → PAXG 폴백`);
       return null;
     }
     const raw = json.response?.body?.items?.item;
     const items: DataGoKrItem[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
+    if (items.length === 0) {
+      console.warn(`[krx-gold] 데이터 없음 (likeItmsNm=${itemName}) → PAXG 폴백`);
+      return null;
+    }
     const points: KrxGoldPoint[] = [];
     for (const it of items) {
       const close = Number(it.clpr);

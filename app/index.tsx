@@ -20,24 +20,32 @@ import {
 } from "@/lib/signals";
 import {
   loadFavs,
+  loadSignalMode,
   loadSort,
   loadUserCategories,
   saveFavs,
+  saveSignalMode,
   saveSort,
+  setTarget,
+  type SignalMode,
   type SortMode,
 } from "@/lib/storage";
+import { upcomingEvents, type UpcomingEvent } from "@/lib/macro-events";
+import { t } from "@/lib/i18n";
 
 type Card = {
   slug: string;
   meta: CategoryMeta;
   series: Series;
   stats: ReturnType<typeof computeStats>;
+  nextEvent?: UpcomingEvent;
 };
 
 export default function HomeScreen() {
   const [cards, setCards] = useState<Card[]>([]);
   const [favs, setFavs] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<SortMode>("default");
+  const [signalMode, setSignalMode] = useState<SignalMode>("default");
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<string[]>([]);
@@ -46,7 +54,8 @@ export default function HomeScreen() {
     setLoading(true);
     setErrors([]);
     try {
-      const userCats = await loadUserCategories();
+      const [userCats, mode] = await Promise.all([loadUserCategories(), loadSignalMode()]);
+      setSignalMode(mode);
       const slugs = allSlugs(userCats);
       // 카테고리 1개 실패해도 나머지 계속 (allSettled)
       const results = await Promise.allSettled(
@@ -54,8 +63,9 @@ export default function HomeScreen() {
           const meta = metaFor(slug);
           if (!meta) return null;
           const series = await getSeries(slug);
-          const stats = computeStats(series);
-          return { slug, meta, series, stats };
+          const stats = computeStats(series, mode);
+          const nextEvent = upcomingEvents(slug, 30, 1)[0];
+          return { slug, meta, series, stats, nextEvent };
         }),
       );
       const next: Card[] = [];
@@ -112,9 +122,13 @@ export default function HomeScreen() {
     (slug: string) => {
       setFavs((prev) => {
         const next = new Set(prev);
-        if (next.has(slug)) next.delete(slug);
+        const removing = next.has(slug);
+        if (removing) next.delete(slug);
         else next.add(slug);
         void saveFavs(next);
+        // 즐겨찾기 해제 시 목표가도 함께 제거 — 백그라운드 체크는 즐겨찾기만 돌고,
+        // 즐겨찾기 빠진 카테고리에 목표가만 남으면 영영 발송 안 됨(데드 데이터).
+        if (removing) void setTarget(slug, null);
         return next;
       });
     },
@@ -157,15 +171,13 @@ export default function HomeScreen() {
       ListHeaderComponent={
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <Text style={styles.brand}>얼말까</Text>
+            <Text style={styles.brand}>{t("home.brand")}</Text>
             <Text style={[styles.liveBadge, !anyLive && styles.dimmed]}>
-              {anyLive ? "● 실데이터" : "○ 더미"}
+              {anyLive ? t("badge.live") : t("badge.dummy")}
             </Text>
           </View>
-          <Text style={styles.title}>지금 살까,{"\n"}기다릴까?</Text>
-          <Text style={styles.subtitle}>
-            환율·주유비·항공권·금. 과거+현재+예측을 한 화면에서.
-          </Text>
+          <Text style={styles.title}>{t("home.title")}</Text>
+          <Text style={styles.subtitle}>{t("home.subtitle")}</Text>
           <View style={styles.chipRow}>
             {(["default", "signal", "change"] as SortMode[]).map((m) => (
               <Pressable
@@ -182,10 +194,39 @@ export default function HomeScreen() {
                     sort === m && styles.chipTextActive,
                   ]}
                 >
-                  {m === "default" ? "기본" : m === "signal" ? "신호" : "변동률"}
+                  {t(`home.sort.${m}`)}
                 </Text>
               </Pressable>
             ))}
+          </View>
+          <View style={styles.modeRow}>
+            <Text style={styles.modeLabel}>{t("home.mode.label")}</Text>
+            {(["conservative", "default", "aggressive"] as SignalMode[]).map((m) => {
+              const label = t(`home.mode.${m}`);
+              return (
+                <Pressable
+                  key={m}
+                  onPress={() => {
+                    setSignalMode(m);
+                    void saveSignalMode(m);
+                    // 재계산
+                    setCards((prev) =>
+                      prev.map((c) => ({ ...c, stats: computeStats(c.series, m) })),
+                    );
+                  }}
+                  style={[styles.modeChip, signalMode === m && styles.modeChipActive]}
+                >
+                  <Text
+                    style={[
+                      styles.modeChipText,
+                      signalMode === m && styles.modeChipTextActive,
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
       }
@@ -223,7 +264,7 @@ export default function HomeScreen() {
         <View>
           <Link href="/add" asChild>
             <Pressable style={styles.addBtn}>
-              <Text style={styles.addBtnText}>+ 카테고리 추가</Text>
+              <Text style={styles.addBtnText}>{t("home.add")}</Text>
             </Pressable>
           </Link>
           <Text style={styles.footnote}>
@@ -245,9 +286,10 @@ function CardRow({
   isFav: boolean;
   onFav: (slug: string) => void;
 }) {
-  const { slug, meta, series, stats } = card;
+  const { slug, meta, series, stats, nextEvent } = card;
   const s = SIGNAL_STYLE[stats.signal];
   const positive = stats.change30d > 0;
+  const evHigh = nextEvent?.importance === "high";
   return (
     <View style={[styles.card, { borderColor: s.border, backgroundColor: s.bg }]}>
       <Pressable
@@ -268,6 +310,26 @@ function CardRow({
                 <Text style={styles.name}>{meta.name}</Text>
                 {series.source === "live" && (
                   <Text style={styles.liveTag}>LIVE</Text>
+                )}
+                {nextEvent && (
+                  <View
+                    style={[
+                      styles.eventChip,
+                      evHigh && styles.eventChipHigh,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.eventChipText,
+                        evHigh && styles.eventChipTextHigh,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {evHigh ? "⭐ " : ""}
+                      {nextEvent.emoji} D-
+                      {nextEvent.daysAhead === 0 ? "DAY" : nextEvent.daysAhead}
+                    </Text>
+                  </View>
                 )}
               </View>
               <Text style={styles.subtitleSmall}>{meta.subtitle}</Text>
@@ -342,6 +404,28 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: "#fafafa", borderColor: "#fafafa" },
   chipText: { color: "#a1a1aa", fontSize: 11, fontWeight: "600" },
   chipTextActive: { color: "#0b0f17" },
+  modeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    flexWrap: "wrap",
+  },
+  modeLabel: { color: "#71717a", fontSize: 10, fontWeight: "700", marginRight: 2 },
+  modeChip: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#27272a",
+    backgroundColor: "#18181b",
+  },
+  modeChipActive: {
+    borderColor: "#a3e635",
+    backgroundColor: "rgba(132,204,22,0.10)",
+  },
+  modeChipText: { color: "#71717a", fontSize: 10, fontWeight: "700" },
+  modeChipTextActive: { color: "#a3e635" },
   card: {
     borderRadius: 16,
     borderWidth: 1,
@@ -357,6 +441,21 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 6 },
   name: { color: "#fafafa", fontSize: 15, fontWeight: "700" },
   liveTag: { color: "#a3e635", fontSize: 9, fontWeight: "800" },
+  eventChip: {
+    marginLeft: "auto",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#3f3f46",
+    backgroundColor: "rgba(63,63,70,0.4)",
+  },
+  eventChipHigh: {
+    borderColor: "rgba(251, 113, 133, 0.6)",
+    backgroundColor: "rgba(251, 113, 133, 0.12)",
+  },
+  eventChipText: { color: "#a1a1aa", fontSize: 9, fontWeight: "700" },
+  eventChipTextHigh: { color: "#fb7185" },
   subtitleSmall: { color: "#71717a", fontSize: 11, marginTop: 1 },
   priceRow: {
     flexDirection: "row",

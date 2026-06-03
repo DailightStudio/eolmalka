@@ -68,3 +68,120 @@ function today(): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
 }
+
+// ── 시도별 평균 ─────────────────────────────────────────
+// 오피넷 avgSidoPrice — 17개 시도의 휘발유/경유 평균가
+const SIDO_CODES: Record<string, string> = {
+  "01": "서울",
+  "02": "경기",
+  "03": "강원",
+  "04": "충북",
+  "05": "충남",
+  "06": "전북",
+  "07": "전남",
+  "08": "경북",
+  "09": "경남",
+  "10": "부산",
+  "11": "제주",
+  "12": "대구",
+  "13": "인천",
+  "14": "광주",
+  "15": "대전",
+  "16": "울산",
+  "17": "세종",
+};
+
+export type SidoPrice = {
+  sido: string;
+  code: string;
+  price: number;
+};
+
+type SidoRow = {
+  SIDOCD?: string;
+  SIDONM?: string;
+  PRICE?: string | number;
+  PRODCD?: string;
+};
+
+export function getSidoPrices(product: GasProduct = "B027"): Promise<SidoPrice[]> {
+  return cachedFetch(`gas-sido:${product}`, () => fetchSidoUncached(product));
+}
+
+async function fetchSidoUncached(product: GasProduct): Promise<SidoPrice[]> {
+  if (!KEY) return [];
+  try {
+    const url = `${BASE}/avgSidoPrice.do?code=${KEY}&prodcd=${product}&out=json`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const json = (await res.json()) as { RESULT?: { OIL?: SidoRow[] } };
+    const rows = json.RESULT?.OIL ?? [];
+    return rows
+      .map((r) => {
+        const price = Number(r.PRICE);
+        const code = r.SIDOCD ?? "";
+        if (!Number.isFinite(price) || price <= 0) return null;
+        return {
+          sido: r.SIDONM ?? SIDO_CODES[code] ?? code,
+          code,
+          price: Math.round(price * 100) / 100,
+        };
+      })
+      .filter((x): x is SidoPrice => x !== null)
+      .sort((a, b) => a.price - b.price);
+  } catch {
+    return [];
+  }
+}
+
+// ── 시군구별 평균 ───────────────────────────────────────
+// 오피넷 avgSiGunGuPrice — 특정 시도의 시군구 평균가
+export type SiGunGuPrice = {
+  sigungu: string;
+  code: string;
+  price: number;
+};
+
+type SgRow = {
+  SIGUNCD?: string;
+  SIGUNNM?: string;
+  PRICE?: string | number;
+};
+
+export function getSiGunGuPrices(
+  sidoCode: string,
+  product: GasProduct = "B027",
+): Promise<SiGunGuPrice[]> {
+  return cachedFetch(`gas-sigungu:${sidoCode}:${product}`, () =>
+    fetchSiGunGuUncached(sidoCode, product),
+  );
+}
+
+async function fetchSiGunGuUncached(
+  sidoCode: string,
+  product: GasProduct,
+): Promise<SiGunGuPrice[]> {
+  if (!KEY || !sidoCode) return [];
+  try {
+    const url = `${BASE}/avgSiGunGuPrice.do?code=${KEY}&sido=${sidoCode}&prodcd=${product}&out=json`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const json = (await res.json()) as { RESULT?: { OIL?: SgRow[] } };
+    const rows = json.RESULT?.OIL ?? [];
+    return rows
+      .map((r) => {
+        const price = Number(r.PRICE);
+        const code = r.SIGUNCD ?? "";
+        if (!Number.isFinite(price) || price <= 0) return null;
+        return {
+          sigungu: r.SIGUNNM ?? code,
+          code,
+          price: Math.round(price * 100) / 100,
+        };
+      })
+      .filter((x): x is SiGunGuPrice => x !== null)
+      .sort((a, b) => a.price - b.price);
+  } catch {
+    return [];
+  }
+}

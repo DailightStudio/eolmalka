@@ -1,18 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Linking,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { captureRef } from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
 import { Sparkline } from "@/components/Sparkline";
-import { getSeries, type Series } from "@/lib/demo-series";
+import { backtestForecast, getSeries, type Series } from "@/lib/demo-series";
 import {
   SIGNAL_STYLE,
+  applyEventVolatility,
   applySentimentBias,
   computeStats,
   dayOfWeekStats,
@@ -21,7 +26,7 @@ import {
   metaFor,
 } from "@/lib/signals";
 import { VERDICT_LABEL } from "@/lib/quartiles";
-import { loadTargets, setTarget } from "@/lib/storage";
+import { loadSignalMode, loadTargets, setTarget, type SignalMode } from "@/lib/storage";
 import {
   requestNotificationPermission,
   scheduleLocalAlert,
@@ -32,6 +37,12 @@ import {
   type NewsResult,
 } from "@/lib/news-provider";
 import { upcomingEvents, type UpcomingEvent } from "@/lib/macro-events";
+import {
+  getSidoPrices,
+  getSiGunGuPrices,
+  type SidoPrice,
+  type SiGunGuPrice,
+} from "@/lib/gas-provider";
 
 export default function CategoryScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -41,18 +52,29 @@ export default function CategoryScreen() {
   const [draftTarget, setDraftTarget] = useState<string>("");
   const [news, setNews] = useState<NewsResult | null>(null);
   const [newsLoading, setNewsLoading] = useState(false);
+  const [signalMode, setSignalMode] = useState<SignalMode>("default");
+  const [sidoPrices, setSidoPrices] = useState<SidoPrice[]>([]);
+  const [openSido, setOpenSido] = useState<string | null>(null);
+  const [sigungus, setSigungus] = useState<Record<string, SiGunGuPrice[]>>({});
+  const captureBoxRef = useRef<View>(null);
 
   const meta = slug ? metaFor(slug) : undefined;
 
   useEffect(() => {
     if (!slug) return;
     void (async () => {
-      const s = await getSeries(slug);
+      const [s, mode] = await Promise.all([getSeries(slug), loadSignalMode()]);
       setSeries(s);
+      setSignalMode(mode);
       const targets = await loadTargets();
       const t = targets[slug] ?? null;
       setTargetState(t);
       setDraftTarget(t != null ? String(t) : "");
+
+      // 휘발유 한정 — 시도별 평균 (비동기, 차단 X)
+      if (slug === "gas-petrol") {
+        void getSidoPrices("B027").then(setSidoPrices);
+      }
 
       // 뉴스는 별도 비동기 — 시세 화면 먼저 뜨게
       setNewsLoading(true);
@@ -81,13 +103,18 @@ export default function CategoryScreen() {
     );
   }
 
-  // 뉴스 sentiment 받았으면 forecast에 ±0.5% bias 반영
-  const adjustedSeries = applySentimentBias(series, news?.sentiment);
-  const stats = computeStats(adjustedSeries);
+  // 뉴스 sentiment 받았으면 forecast에 ±bias 반영(confidence로 강도 스케일), 다가오는 이벤트로 신뢰구간 확장
+  const events = upcomingEvents(slug, 60, 5);
+  const biased = applySentimentBias(series, news?.sentiment, news?.confidence ?? 0.6);
+  const adjustedSeries = applyEventVolatility(biased, events);
+  const stats = computeStats(adjustedSeries, signalMode);
   const fcDelta = forecastChange(adjustedSeries);
   const fcSummary = forecastSummary(adjustedSeries);
   const dow = dayOfWeekStats(adjustedSeries);
-  const events = upcomingEvents(slug, 60, 5);
+  // 실 시계열에만 의미 있음 (라이브 + 합성 메꿈 아닌 카테고리)
+  const backtest = series.pastIsLive
+    ? backtestForecast(series.past, slug, 30)
+    : null;
   const s = SIGNAL_STYLE[stats.signal];
 
   const saveTarget = async () => {
@@ -110,7 +137,20 @@ export default function CategoryScreen() {
       title: `${meta.name} 알림 설정됨`,
       body: `${num.toLocaleString()}${meta.unit} 이하일 때 알려드릴게요.`,
       data: { slug },
+      kind: "system",
     });
+  };
+
+  const toggleSido = async (code: string) => {
+    if (openSido === code) {
+      setOpenSido(null);
+      return;
+    }
+    setOpenSido(code);
+    if (!sigungus[code]) {
+      const list = await getSiGunGuPrices(code, "B027");
+      setSigungus((prev) => ({ ...prev, [code]: list }));
+    }
   };
 
   const clearTarget = async () => {
@@ -119,13 +159,62 @@ export default function CategoryScreen() {
     setDraftTarget("");
   };
 
+  const shareCard = async () => {
+    const trend = stats.change30d > 0 ? `📈 +${stats.change30d}%` : `📉 ${stats.change30d}%`;
+    const fcLine = fcSummary?.cheapest && fcSummary.cheapest.savingAbs > 0
+      ? `\n💰 예상 최저 ${fcSummary.cheapest.date} (~${fcSummary.cheapest.savingAbs.toLocaleString()}원 절약)`
+      : "";
+    const message =
+      `${meta.emoji} ${meta.name}\n` +
+      `${stats.current.toLocaleString()}${meta.unit} · ${trend} 30d\n` +
+      `${s.label} — ${stats.signalText}` +
+      fcLine +
+      `\n\n— 얼말까 (시세 비교·예측)`;
+    // 1) 카드 이미지 캡처 → expo-sharing (이미지 + 텍스트). 실패 시 텍스트 폴백.
+    try {
+      if (captureBoxRef.current) {
+        const uri = await captureRef(captureBoxRef, {
+          format: "png",
+          quality: 0.95,
+          result: "tmpfile",
+        });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, {
+            dialogTitle: meta.name,
+            mimeType: "image/png",
+            UTI: "public.png",
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("[share] capture failed, fallback to text", e);
+    }
+    // 2) 텍스트 폴백 (RN 내장 Share)
+    try {
+      await Share.share({ message, title: meta.name });
+    } catch (e) {
+      console.warn("[share] failed", e);
+    }
+  };
+
   return (
     <>
-      <Stack.Screen options={{ title: meta.name }} />
+      <Stack.Screen
+        options={{
+          title: meta.name,
+          headerRight: () => (
+            <Pressable onPress={shareCard} hitSlop={8}>
+              <Text style={styles.shareBtn}>공유</Text>
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
       >
+        <View ref={captureBoxRef} collapsable={false} style={styles.captureBox}>
         <View style={styles.header}>
           <Text style={styles.emoji}>{meta.emoji}</Text>
           <View style={{ flex: 1 }}>
@@ -231,6 +320,8 @@ export default function CategoryScreen() {
             MA30 {fmt(stats.ma30)}
           </Text>
         </View>
+        <Text style={styles.captureWatermark}>— 얼말까 · eolmalka</Text>
+        </View>
 
         {events.length > 0 && (
           <>
@@ -258,6 +349,75 @@ export default function CategoryScreen() {
               <Text style={styles.tinyMuted}>
                 ※ 예상 일정 + 역사적 평균 변동성. 실제는 컨센서스 surprise에
                 따라 더 크거나 작을 수 있음.
+              </Text>
+            </View>
+          </>
+        )}
+
+        {slug === "gas-petrol" && sidoPrices.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>📍 시도별 평균 (실시간)</Text>
+            <View style={styles.sidoCard}>
+              {(() => {
+                const display = [...sidoPrices.slice(0, 5), ...sidoPrices.slice(-3).reverse()];
+                return display.map((s, idx) => {
+                  const diff = ((s.price - stats.current) / stats.current) * 100;
+                  const color = diff > 0 ? "#fb7185" : "#a3e635";
+                  const isOpen = openSido === s.code;
+                  const list = sigungus[s.code];
+                  const isCheap = idx < 5;
+                  return (
+                    <View key={s.code}>
+                      {idx === 0 && (
+                        <Text style={styles.sidoSectionLabel}>저렴한 곳</Text>
+                      )}
+                      {idx === 5 && (
+                        <Text style={[styles.sidoSectionLabel, { marginTop: 6 }]}>
+                          비싼 곳
+                        </Text>
+                      )}
+                      <Pressable onPress={() => toggleSido(s.code)} style={styles.sidoRow}>
+                        <Text style={styles.sidoName}>
+                          {isOpen ? "▾ " : "▸ "}
+                          {s.sido}
+                        </Text>
+                        <Text style={styles.sidoPrice}>
+                          {s.price.toLocaleString()}원
+                        </Text>
+                        <Text style={[styles.sidoDiff, { color }]}>
+                          {diff > 0 ? "+" : ""}{diff.toFixed(1)}%
+                        </Text>
+                      </Pressable>
+                      {isOpen && list && list.length > 0 && (
+                        <View style={styles.sigunguBox}>
+                          {(isCheap ? list.slice(0, 5) : list.slice(-5).reverse()).map((g) => {
+                            const gDiff = ((g.price - stats.current) / stats.current) * 100;
+                            const gColor = gDiff > 0 ? "#fb7185" : "#a3e635";
+                            return (
+                              <View key={g.code} style={styles.sigunguRow}>
+                                <Text style={styles.sigunguName} numberOfLines={1}>
+                                  {g.sigungu}
+                                </Text>
+                                <Text style={styles.sigunguPrice}>
+                                  {g.price.toLocaleString()}
+                                </Text>
+                                <Text style={[styles.sigunguDiff, { color: gColor }]}>
+                                  {gDiff > 0 ? "+" : ""}{gDiff.toFixed(1)}%
+                                </Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      )}
+                      {isOpen && list && list.length === 0 && (
+                        <Text style={styles.sigunguEmpty}>시군구 데이터 없음</Text>
+                      )}
+                    </View>
+                  );
+                });
+              })()}
+              <Text style={styles.tinyMuted}>
+                전국 평균 {stats.current.toLocaleString()}원/L 대비. 시도 탭 → 시군구 펼침.
               </Text>
             </View>
           </>
@@ -380,10 +540,25 @@ export default function CategoryScreen() {
                   </Text>
                 )}
               </View>
+              {backtest && (
+                <View style={styles.backtestRow}>
+                  <Text style={styles.backtestLabel}>지난 30일 백테스트</Text>
+                  <Text style={styles.backtestVal}>
+                    MAPE{" "}
+                    <Text style={{ color: backtest.mape < 3 ? "#a3e635" : backtest.mape < 8 ? "#fbbf24" : "#fb7185" }}>
+                      {backtest.mape}%
+                    </Text>
+                    {"  ·  "}±1σ 적중{" "}
+                    <Text style={{ color: backtest.coverage >= 0.6 ? "#a3e635" : "#fbbf24" }}>
+                      {Math.round(backtest.coverage * 100)}%
+                    </Text>
+                  </Text>
+                </View>
+              )}
               <Text style={styles.tinyMuted}>
                 ※ 7d/30d/90d 가중 추세{news?.sentiment && news.sentiment !== "neutral"
                   ? ` + 뉴스 ${news.sentiment === "bullish" ? "상승" : "하락"} bias`
-                  : ""}{". 음영=±1σ 신뢰구간 (시간 갈수록 넓어짐)."}
+                  : ""}{events.length > 0 ? " + 이벤트 변동성" : ""}{". 음영=±1σ 신뢰구간 (시간·이벤트로 확장)."}
               </Text>
             </View>
           </>
@@ -407,18 +582,37 @@ export default function CategoryScreen() {
                 >
                   {SENTIMENT_STYLE[news.sentiment].label}
                 </Text>
+                {news.live && news.sentiment !== "neutral" && (
+                  <Text style={styles.newsConf}>
+                    신뢰도 {Math.round((news.confidence ?? 0.6) * 100)}%
+                  </Text>
+                )}
                 {!news.live && (
                   <Text style={styles.newsFlag}>키 없음</Text>
                 )}
               </View>
               <Text style={styles.newsSummary}>{news.summary}</Text>
-              {news.headlines.length > 0 && (
+              {(news.items?.length ?? news.headlines.length) > 0 && (
                 <View style={{ marginTop: 10, gap: 4 }}>
-                  {news.headlines.slice(0, 3).map((h, i) => (
-                    <Text key={i} style={styles.newsItem} numberOfLines={2}>
-                      • {h}
-                    </Text>
-                  ))}
+                  {(news.items ?? news.headlines.map((h) => ({ title: h, link: undefined })))
+                    .slice(0, 3)
+                    .map((it, i) => (
+                      <Pressable
+                        key={i}
+                        onPress={() => {
+                          if (it.link) void Linking.openURL(it.link);
+                        }}
+                        disabled={!it.link}
+                        hitSlop={4}
+                      >
+                        <Text style={styles.newsItem} numberOfLines={2}>
+                          • {it.title}
+                          {it.link ? (
+                            <Text style={styles.newsItemLink}>  ↗</Text>
+                          ) : null}
+                        </Text>
+                      </Pressable>
+                    ))}
                 </View>
               )}
               <Text style={styles.tinyMuted}>
@@ -521,6 +715,21 @@ const styles = StyleSheet.create({
   name: { color: "#fafafa", fontSize: 18, fontWeight: "700" },
   sub: { color: "#71717a", fontSize: 11, marginTop: 2 },
   sourceTag: { fontSize: 10, fontWeight: "800" },
+  shareBtn: { color: "#a3e635", fontSize: 14, fontWeight: "700", paddingHorizontal: 8 },
+  captureBox: {
+    backgroundColor: "#0b0f17",
+    paddingBottom: 8,
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+  },
+  captureWatermark: {
+    color: "#52525b",
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    marginTop: 6,
+    textAlign: "right",
+  },
   priceBlock: { marginTop: 18 },
   row: { flexDirection: "row", alignItems: "baseline", gap: 6 },
   priceLg: { color: "#fafafa", fontSize: 30, fontWeight: "800" },
@@ -627,8 +836,15 @@ const styles = StyleSheet.create({
     color: "#71717a",
     fontWeight: "700",
   },
+  newsConf: {
+    marginLeft: "auto",
+    fontSize: 10,
+    color: "#a1a1aa",
+    fontWeight: "700",
+  },
   newsSummary: { color: "#fafafa", fontSize: 14, marginTop: 8, lineHeight: 20 },
   newsItem: { color: "#a1a1aa", fontSize: 11, lineHeight: 16 },
+  newsItemLink: { color: "#a3e635", fontSize: 10, fontWeight: "700" },
   fcCard: {
     marginTop: 8,
     borderRadius: 12,
@@ -660,6 +876,18 @@ const styles = StyleSheet.create({
   },
   fcCheapText: { fontSize: 12, lineHeight: 18 },
   fcCheapValue: { color: "#fafafa", fontSize: 15, fontWeight: "800" },
+  backtestRow: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#27272a",
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  backtestLabel: { color: "#71717a", fontSize: 10, fontWeight: "700" },
+  backtestVal: { color: "#a1a1aa", fontSize: 11, fontWeight: "700" },
   dowCard: {
     marginTop: 8,
     borderRadius: 12,
@@ -679,6 +907,45 @@ const styles = StyleSheet.create({
   },
   dowDay: { color: "#d4d4d8", fontSize: 12, fontWeight: "700" },
   dowPct: { fontSize: 10, fontWeight: "600", marginTop: 4 },
+  sidoCard: {
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#27272a",
+    padding: 12,
+  },
+  sidoSection: { gap: 4 },
+  sidoSectionLabel: {
+    color: "#71717a",
+    fontSize: 10,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  sidoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 3,
+  },
+  sidoName: { color: "#fafafa", fontSize: 12, fontWeight: "600", width: 80 },
+  sidoPrice: { color: "#a1a1aa", fontSize: 12, fontWeight: "700", flex: 1, textAlign: "right" },
+  sidoDiff: { fontSize: 11, fontWeight: "700", width: 60, textAlign: "right" },
+  sigunguBox: {
+    marginLeft: 16,
+    paddingLeft: 8,
+    borderLeftWidth: 1,
+    borderLeftColor: "#27272a",
+    paddingVertical: 4,
+    gap: 2,
+  },
+  sigunguRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 2,
+  },
+  sigunguName: { color: "#a1a1aa", fontSize: 11, flex: 1 },
+  sigunguPrice: { color: "#71717a", fontSize: 11, fontWeight: "600", width: 60, textAlign: "right" },
+  sigunguDiff: { fontSize: 10, fontWeight: "600", width: 50, textAlign: "right" },
+  sigunguEmpty: { color: "#52525b", fontSize: 10, paddingVertical: 4, paddingLeft: 16 },
   evCard: {
     marginTop: 8,
     borderRadius: 12,

@@ -5,8 +5,10 @@ const SORT = "eolmalka:sort:v1";
 const TARGETS = "eolmalka:targets:v1";
 const NOTIFY_LOG = "eolmalka:notifylog:v1";
 const USER_CATS = "eolmalka:userCats:v1";
+const SIGNAL_MODE = "eolmalka:signalMode:v1";
 
 export type SortMode = "default" | "signal" | "change";
+export type SignalMode = "conservative" | "default" | "aggressive";
 export type Targets = Record<string, number | null>;
 // kind: 'target' = 사용자 목표가 도달, 'signal' = 통계 신호 buy
 // epoch ms 마지막 발송 시각
@@ -42,6 +44,20 @@ export async function loadSort(): Promise<SortMode> {
 export async function saveSort(m: SortMode): Promise<void> {
   try {
     await AsyncStorage.setItem(SORT, m);
+  } catch {}
+}
+
+export async function loadSignalMode(): Promise<SignalMode> {
+  try {
+    const raw = await AsyncStorage.getItem(SIGNAL_MODE);
+    if (raw === "conservative" || raw === "aggressive" || raw === "default") return raw;
+  } catch {}
+  return "default";
+}
+
+export async function saveSignalMode(m: SignalMode): Promise<void> {
+  try {
+    await AsyncStorage.setItem(SIGNAL_MODE, m);
   } catch {}
 }
 

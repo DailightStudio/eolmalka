@@ -8,6 +8,7 @@ import { getGasLatest } from "./gas-provider";
 import { getGoldLatest } from "./gold-provider";
 import { getKrxGoldDaily } from "./krx-gold-provider";
 import { getKrxOilDaily } from "./krx-oil-provider";
+import { backfillChunk } from "./opinet-daily-provider";
 import { appendDaily, loadDailySeries, mergeWithDaily } from "./series-store";
 
 export type Point = {
@@ -127,19 +128,26 @@ async function getSeriesRaw(slug: string): Promise<Series> {
     const profile = SYN_PROFILES[slug];
     const synPast = buildSynthetic(slug, profile);
     const latest = await getGasLatest("B027");
+    // fire-and-forget: 매 진입마다 오피넷 일별가 30일치 백필 (resumable).
+    // 휘발유 분기에서만 호출 → 다른 카테고리 진입 시엔 트리거 안 됨.
+    void backfillChunk("gas-petrol", "B027").catch((e) =>
+      console.warn("[opinet backfill]", e),
+    );
 
     // 2-a) KRX 석유 도매 시계열 + 오피넷 현재가 조합 (가장 정합)
     const krxOil = await getKrxOilDaily(365, "휘발유");
     if (krxOil && krxOil.length >= 5 && latest.live) {
-      const krxLast = krxOil[krxOil.length - 1].close;
+      // 도매가는 거래량 낮은 날 ±2~4% 튀어오르므로 7일 이동평균으로 스무딩.
+      // 트렌드는 보존하면서 sparkline의 거친 막대 패턴 제거.
+      const smoothedCloses = movingAverage(krxOil.map((p) => p.close), 7);
+      const krxLast = smoothedCloses[smoothedCloses.length - 1];
       const ratio = latest.price / krxLast; // 도매→소매 비율
-      // KRX 도매 시계열을 소매 스케일로 변환 + 마지막 점만 오피넷 실 현재가
       const scaledKrx: Point[] = krxOil.map((p, i) => ({
         date: p.date,
         value:
           i === krxOil.length - 1
             ? round(latest.price)
-            : round(p.close * ratio),
+            : round(smoothedCloses[i] * ratio),
       }));
       // 합성으로 휴장일·갭 채우기
       const scaledSyn = scaleToCurrent(synPast, latest.price);
@@ -184,22 +192,25 @@ async function getSeriesRaw(slug: string): Promise<Series> {
     // 3-a) KRX 금시장 — 진짜 한국 시세 + 일별 시계열
     const krx = await getKrxGoldDaily(365);
     if (krx && krx.length >= 5) {
-      const past: Point[] = krx.map((p) => ({ date: p.date, value: round(p.close) }));
-      const latest = past[past.length - 1];
-      // 365일 다 못 채웠으면(휴장일 + 갓 활성화) 합성으로 앞부분 채움
-      const synPast = buildSynthetic(slug, profile);
-      const scaled = scaleToCurrent(synPast, latest.value);
-      const { merged, liveDays } = mergeWithDaily(scaled, past);
-      // 누적 저장은 KRX 일별이 정공법이라 굳이 안 함 (매번 API에서 365일 받음)
-      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      // 일별 ±2~3% 변동이 sparkline 365 포인트에서 막대처럼 보이므로 MA7 스무딩.
+      // 단, 마지막 점은 실 종가 그대로 — 표시 현재가가 MA로 흐려지지 않게.
+      const smoothed = movingAverage(krx.map((p) => p.close), 7);
+      const lastIdx = krx.length - 1;
+      const past: Point[] = krx.map((p, i) => ({
+        date: p.date,
+        value: round(i === lastIdx ? p.close : smoothed[i]),
+      }));
+      // 합성 메꿈 제거: KRX 영업일만으로 충분. 휴장일은 sparkline에서 X축이 등간격이라
+      // 시각적으로 차이 없음. pastIsLive=true가 라벨도 정확.
+      const forecast = projectForecast(past, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
       return {
         slug,
-        past: merged,
+        past,
         forecast,
         source: "live",
         sourceName: "krx-gold",
-        pastIsLive: liveDays >= synPast.length,
-        liveDays,
+        pastIsLive: true,
+        liveDays: krx.length,
       };
     }
 
@@ -289,16 +300,57 @@ function projectForecast(
   if (forecastDir !== undefined) {
     dailyDrift = forecastDir / days;
   } else {
-    dailyDrift = computeBlendedDrift(past);
+    dailyDrift = computeBlendedDrift(past, slug);
   }
+
+  // 항공권 계절성 — 작년 동월 평균 ratio + 휴가시즌 부스트.
+  // 단, 합성 카테고리(forecastDir 명시)는 buildSynthetic이 이미 sin 계절성을 머금음 →
+  // 이중 증폭 방지 위해 실 시계열에만 적용.
+  const seasonal =
+    slug.startsWith("air-") && forecastDir === undefined
+      ? buildSeasonalAdjuster(past)
+      : null;
 
   const out: Point[] = [];
   for (let i = 1; i <= days; i++) {
     const date = addDays(lastDate, i);
-    const value = last * (1 + dailyDrift * i + (rand() - 0.5) * 2 * noise * 0.4);
+    let value = last * (1 + dailyDrift * i + (rand() - 0.5) * 2 * noise * 0.4);
+    if (seasonal) value *= seasonal(date);
     out.push({ date: ymd(date), value: round(value), forecast: true });
   }
   return out;
+}
+
+// 작년 동월(±15일) 평균 / 전체 평균 = monthly ratio.
+// 거기에 휴가시즌 부스트(7-8월 +3%, 12-1월 +2%) 가산.
+// 반환: 날짜를 받아 가격 배수를 돌려주는 함수.
+function buildSeasonalAdjuster(past: Point[]): (d: Date) => number {
+  const overall = past.reduce((s, p) => s + p.value, 0) / past.length;
+  const buckets: { sum: number; count: number }[] = Array.from(
+    { length: 12 },
+    () => ({ sum: 0, count: 0 }),
+  );
+  for (const p of past) {
+    const d = new Date(p.date + "T00:00:00Z");
+    const m = d.getUTCMonth();
+    if (!Number.isNaN(m)) {
+      buckets[m].sum += p.value;
+      buckets[m].count++;
+    }
+  }
+  const monthlyRatio = buckets.map((b) =>
+    b.count > 0 ? b.sum / b.count / overall : 1,
+  );
+  const HOLIDAY_BOOST: Record<number, number> = {
+    6: 1.03, 7: 1.03,           // 7-8월 (UTC 0-base: 6,7)
+    11: 1.02, 0: 1.02,          // 12-1월
+  };
+  return (d: Date) => {
+    const m = d.getUTCMonth();
+    const ratio = monthlyRatio[m] ?? 1;
+    const boost = HOLIDAY_BOOST[m] ?? 1;
+    return ratio * boost;
+  };
 }
 
 // 시계열의 일별 변동성(σ)을 이용해 forecast의 ±1σ 신뢰구간 산출.
@@ -316,6 +368,48 @@ export function computeForecastBand(past: Point[], forecast: Point[]): {
     lower.push(Math.round(p.value * (1 - sigmaT) * 100) / 100);
   });
   return { upper, lower };
+}
+
+// ── 백테스트 ──────────────────────────────────────────
+// 과거 시계열의 마지막 holdoutDays 일을 holdout으로 두고, 그 직전까지로 예측 → 실제값과 비교.
+// 합성·forecastDir 우선 카테고리는 자기예언이 되므로 의미 없음 (실 시계열 슬러그에만 의미).
+export type BacktestResult = {
+  mape: number;        // 평균 절대 비율 오차 (%) — 작을수록 좋음
+  rmse: number;        // 평균 제곱근 오차 (원 단위)
+  coverage: number;    // ±1σ 신뢰구간 안에 실제값이 들어간 비율 (0~1)
+  n: number;           // 비교한 일수
+};
+export function backtestForecast(
+  past: Point[],
+  slug: string,
+  holdoutDays = 30,
+): BacktestResult | null {
+  if (past.length < holdoutDays + 60) return null;
+  const train = past.slice(0, past.length - holdoutDays);
+  const actual = past.slice(past.length - holdoutDays);
+  // 백테스트는 모델 검증 — forecastDir(합성 카테고리)이 아니라 blended drift 사용
+  const predicted = projectForecast(train, holdoutDays, slug);
+  const band = computeForecastBand(train, predicted);
+  let mapeSum = 0;
+  let rmseSum = 0;
+  let inBand = 0;
+  let n = 0;
+  for (let i = 0; i < actual.length && i < predicted.length; i++) {
+    const a = actual[i].value;
+    const p = predicted[i].value;
+    if (!a) continue;
+    mapeSum += Math.abs((p - a) / a);
+    rmseSum += (p - a) ** 2;
+    if (a >= band.lower[i] && a <= band.upper[i]) inBand++;
+    n++;
+  }
+  if (n === 0) return null;
+  return {
+    mape: Math.round((mapeSum / n) * 10000) / 100,
+    rmse: Math.round(Math.sqrt(rmseSum / n) * 100) / 100,
+    coverage: Math.round((inBand / n) * 1000) / 1000,
+    n,
+  };
 }
 
 // 일별 수익률의 표준편차 (최근 60일)
@@ -336,8 +430,30 @@ function computeDailySigma(past: Point[]): number {
   return Math.max(0.001, Math.sqrt(variance));
 }
 
+// 카테고리별 예측 가중 (7d / 30d / 90d 추세에 곱할 weight).
+// 양수=관성, 음수=반전(평균회귀) 압력. 정확성 향상을 위해 도메인별로 분리.
+// - 환율: 중앙은행 정책으로 30d 반전 강함, 평균회귀 성격
+// - 금: 인플레 헤지 → 장기 모멘텀, 7d 관성
+// - 휘발유: 정책·OPEC 충격 → 단기 모멘텀 약함, 평균회귀 우세
+// - 항공권: 계절성 + 시즌 트렌드 → 장기 추세 따라감
+type DriftWeights = { w7: number; w30: number; w90: number };
+const DEFAULT_WEIGHTS: DriftWeights = { w7: 0.4, w30: -0.3, w90: -0.1 };
+const CATEGORY_WEIGHTS: Array<{ match: (slug: string) => boolean; w: DriftWeights }> = [
+  { match: (s) => s.startsWith("fx-"),    w: { w7: 0.3, w30: -0.4, w90: -0.1 } },
+  { match: (s) => s.startsWith("gold"),   w: { w7: 0.5, w30: -0.1, w90:  0.1 } },
+  { match: (s) => s.startsWith("gas-"),   w: { w7: 0.2, w30: -0.2, w90: -0.2 } },
+  { match: (s) => s.startsWith("air-"),   w: { w7: 0.1, w30:  0.1, w90:  0.3 } },
+];
+
+function weightsFor(slug: string): DriftWeights {
+  for (const { match, w } of CATEGORY_WEIGHTS) {
+    if (match(slug)) return w;
+  }
+  return DEFAULT_WEIGHTS;
+}
+
 // 다중 기간 추세 가중 → 하루당 drift (%)
-function computeBlendedDrift(past: Point[]): number {
+function computeBlendedDrift(past: Point[], slug: string): number {
   const n = past.length;
   const last = past[n - 1].value;
   const trend = (windowDays: number, weight: number): number => {
@@ -348,15 +464,28 @@ function computeBlendedDrift(past: Point[]): number {
     // windowDays에 걸친 % → 하루당 % (선형 분할)
     return (totalPct / windowDays) * weight;
   };
-  // 단기 추세 관성(+) + 중기 반전 압력(-) + 장기 평균회귀(-)
-  const d7 = trend(7, 0.4);
-  const d30 = trend(30, -0.3);
-  const d90 = trend(90, -0.1);
-  return d7 + d30 + d90;
+  const { w7, w30, w90 } = weightsFor(slug);
+  return trend(7, w7) + trend(30, w30) + trend(90, w90);
 }
 
 function round(v: number): number {
   if (v >= 10000) return Math.round(v);
   if (v >= 1000) return Math.round(v);
   return Math.round(v * 100) / 100;
+}
+
+// 중심 이동평균 (window=홀수 권장). 양쪽 가장자리는 가능한 만큼 부분 평균.
+function movingAverage(values: number[], window: number): number[] {
+  const n = values.length;
+  if (n === 0 || window <= 1) return values.slice();
+  const half = Math.floor(window / 2);
+  const out = new Array<number>(n);
+  for (let i = 0; i < n; i++) {
+    const lo = Math.max(0, i - half);
+    const hi = Math.min(n, i + half + 1);
+    let sum = 0;
+    for (let j = lo; j < hi; j++) sum += values[j];
+    out[i] = sum / (hi - lo);
+  }
+  return out;
 }

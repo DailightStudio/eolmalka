@@ -1,6 +1,10 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
+import { Animated, Easing } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import type { Point } from "@/lib/demo-series";
+
+// react-native-svg의 Circle을 Animated와 결합 — r/opacity 펄스용
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 type Props = {
   past: Point[];
@@ -60,6 +64,23 @@ export function Sparkline({
   const cx = xAt(fcOffset);
   const cy = yAt(past[past.length - 1].value);
 
+  // 현재 시점 점에 펄스 ring — 외곽 원이 커지면서 흐려지는 루프
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(pulse, {
+        toValue: 1,
+        duration: 1400,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false, // SVG attribute는 native driver 미지원
+      }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+  const pulseR = pulse.interpolate({ inputRange: [0, 1], outputRange: [2.5, 9] });
+  const pulseOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.65, 0] });
+
   // 신뢰구간 영역 (upper → lower 닫힌 polygon)
   let bandPath = "";
   if (forecastBand && forecast.length > 0) {
@@ -95,6 +116,13 @@ export function Sparkline({
           opacity={0.7}
         />
       ) : null}
+      <AnimatedCircle
+        cx={cx}
+        cy={cy}
+        r={pulseR}
+        fill={stroke}
+        opacity={pulseOpacity}
+      />
       <Circle cx={cx} cy={cy} r={2.5} fill={stroke} />
     </Svg>
   );

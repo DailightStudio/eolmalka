@@ -1,10 +1,26 @@
 import type { Point, Series } from "./demo-series";
+import type { UpcomingEvent } from "./macro-events";
+import type { SignalMode } from "./storage";
 import {
   quartilesOf,
   verdictFromQuartiles,
   type PriceQuartiles,
   type PriceVerdict,
 } from "./quartiles";
+
+// 신호 임계치 — mode에 따라 buy/wait 조건 강화/완화.
+// conservative: buy 조건 엄격, wait 조건 느슨 (덜 사고 더 기다림)
+// aggressive: buy 조건 느슨, wait 조건 엄격 (더 자주 사세요)
+type SignalThresholds = {
+  buyDropPct: number;   // change30d <= -X% 단독 buy 트리거 (great_deal 별도)
+  waitRisePct: number;  // change30d >= X% 단독 wait 트리거
+  highRisePct: number;  // verdict=high + change30d>=X% 일 때 강화
+};
+const THRESHOLDS: Record<SignalMode, SignalThresholds> = {
+  conservative: { buyDropPct: -6, waitRisePct: 3, highRisePct: 0.5 },
+  default:      { buyDropPct: -4, waitRisePct: 4, highRisePct: 1 },
+  aggressive:   { buyDropPct: -2.5, waitRisePct: 6, highRisePct: 2 },
+};
 
 export type Signal = "buy" | "wait" | "neutral";
 
@@ -21,11 +37,8 @@ export type SeriesStats = {
   verdict: PriceVerdict;
 };
 
-// 신호 산출: quartile verdict + 30d 변동률 조합.
-// - quartile이 great_deal이면 일반적으로 buy
-// - quartile이 high이고 30d 변동률 상승이면 wait
-// - 그 외는 neutral
-export function computeStats(series: Series): SeriesStats {
+// 신호 산출: quartile verdict + 30d 변동률 조합. mode로 임계치 조정.
+export function computeStats(series: Series, mode: SignalMode = "default"): SeriesStats {
   const past = series.past;
   const n = past.length;
   const current = past[n - 1].value;
@@ -43,6 +56,7 @@ export function computeStats(series: Series): SeriesStats {
   const values = past.map((p) => p.value);
   const quartiles = quartilesOf(values);
   const verdict = verdictFromQuartiles(current, quartiles);
+  const t = THRESHOLDS[mode];
 
   let signal: Signal = "neutral";
   let signalText = "최근 분포의 평균 범위입니다.";
@@ -53,16 +67,16 @@ export function computeStats(series: Series): SeriesStats {
   } else if (verdict === "good" && change30d <= 0) {
     signal = "buy";
     signalText = "중앙값보다 저렴 + 한 달간 하락 — 매수 기회.";
-  } else if (verdict === "high" && change30d >= 1) {
+  } else if (verdict === "high" && change30d >= t.highRisePct) {
     signal = "wait";
     signalText = "상위 분포 + 한 달간 상승 — 단기 관망.";
   } else if (verdict === "high") {
     signal = "wait";
     signalText = "최근 1년 분포의 상위 구간입니다.";
-  } else if (change30d <= -4) {
+  } else if (change30d <= t.buyDropPct) {
     signal = "buy";
     signalText = "한 달간 큰 하락 — 단기 매수 기회.";
-  } else if (change30d >= 4) {
+  } else if (change30d >= t.waitRisePct) {
     signal = "wait";
     signalText = "한 달간 급등 — 단기는 관망.";
   }
@@ -166,13 +180,16 @@ function round0(v: number): number {
 
 // 뉴스 sentiment를 forecast에 ±bias로 반영.
 // bullish: 30일에 걸쳐 +0.5% 누적 / bearish: -0.5% / neutral: 변경 없음.
-// 단순화한 휴리스틱 — 강도는 카테고리·시장 상황에 따라 다를 수 있음.
+// confidence(0~1)로 강도 스케일 — 모호한 신호는 약한 bias, 명확한 신호는 풀강도.
 export function applySentimentBias(
   series: Series,
   sentiment: "bullish" | "bearish" | "neutral" | null | undefined,
+  confidence = 1,
 ): Series {
   if (!sentiment || sentiment === "neutral" || series.forecast.length === 0) return series;
-  const totalBias = sentiment === "bullish" ? 0.005 : -0.005; // ±0.5%
+  const conf = Math.max(0, Math.min(1, confidence));
+  if (conf <= 0) return series;
+  const totalBias = (sentiment === "bullish" ? 0.005 : -0.005) * conf;
   const forecast = series.forecast.map((p, i) => {
     const t = (i + 1) / series.forecast.length;
     return { ...p, value: p.value * (1 + totalBias * t) };
@@ -190,6 +207,46 @@ export function applySentimentBias(
       }
     : undefined;
   return { ...series, forecast, forecastBand };
+}
+
+// 다가오는 거시 이벤트의 예상 변동성을 forecastBand에 반영.
+// 이벤트 daysAhead 이후의 forecast 인덱스부터 sigma를 expectedVolatility/100 만큼 누적.
+// (forecast value는 그대로 — bias는 sentiment 몫. 여기서는 불확실성만 확장)
+//
+// 호출 순서 주의: applySentimentBias 다음에 호출해야 함 (bias 적용된 fc.value 기준으로 band 역산).
+// 가산 정책: 동일 일자에 복수 이벤트가 겹치면 sigma는 누산되되 SIGMA_CAP(±3.5%)으로 클램프.
+// 음수 lower bound 방지: lower는 fc.value의 5% 이하로 떨어지지 않게 가드.
+const SIGMA_CAP = 0.035;
+export function applyEventVolatility(
+  series: Series,
+  events: UpcomingEvent[],
+): Series {
+  const fc = series.forecast;
+  const band = series.forecastBand;
+  if (!band || fc.length === 0 || events.length === 0) return series;
+
+  const sigmaBonus = new Array(fc.length).fill(0);
+  for (const e of events) {
+    const onset = Math.max(1, e.daysAhead) - 1; // forecast index 기준 (0=D+1)
+    if (onset >= fc.length) continue;
+    const bonus = e.expectedVolatility / 100;
+    for (let i = onset; i < fc.length; i++) sigmaBonus[i] += bonus;
+  }
+
+  const upper = band.upper.map((v, i) => {
+    const p = fc[i].value;
+    const orig = (v - p) / p; // 기존 sigmaT (시간 의존)
+    const total = Math.min(SIGMA_CAP, orig + sigmaBonus[i]);
+    return Math.round(p * (1 + total) * 100) / 100;
+  });
+  const lower = band.lower.map((v, i) => {
+    const p = fc[i].value;
+    const orig = (p - v) / p;
+    const total = Math.min(SIGMA_CAP, orig + sigmaBonus[i]);
+    return Math.round(Math.max(p * 0.05, p * (1 - total)) * 100) / 100;
+  });
+
+  return { ...series, forecastBand: { upper, lower } };
 }
 
 // 요일별 평균 가격 — 1년치 시계열 활용
@@ -252,7 +309,9 @@ export function dayOfWeekStats(series: Series): {
   return { stats, cheapest, highest };
 }
 
-// RN 호환 색상 (rgba bg, hex border/stroke)
+import { t } from "./i18n";
+
+// RN 호환 색상 (rgba bg, hex border/stroke). label은 locale별로 t()에서 조회.
 export const SIGNAL_STYLE: Record<
   Signal,
   { bg: string; border: string; stroke: string; label: string }
@@ -261,19 +320,19 @@ export const SIGNAL_STYLE: Record<
     bg: "rgba(132, 204, 22, 0.10)",
     border: "rgba(132, 204, 22, 0.40)",
     stroke: "#a3e635",
-    label: "지금 사세요",
+    get label() { return t("signal.buy"); },
   },
   wait: {
     bg: "rgba(244, 63, 94, 0.10)",
     border: "rgba(244, 63, 94, 0.40)",
     stroke: "#fb7185",
-    label: "기다리세요",
+    get label() { return t("signal.wait"); },
   },
   neutral: {
     bg: "rgba(113, 113, 122, 0.10)",
     border: "rgba(113, 113, 122, 0.40)",
     stroke: "#a1a1aa",
-    label: "보통",
+    get label() { return t("signal.neutral"); },
   },
 };
 
@@ -284,18 +343,19 @@ export type CategoryMeta = {
   emoji: string;
 };
 
-export const CATEGORY_META: Record<string, CategoryMeta> = {
-  "fx-usd":     { name: "원/달러 환율", subtitle: "USD/KRW",              unit: "원",    emoji: "💵" },
-  "fx-jpy":     { name: "원/엔 환율",   subtitle: "JPY/KRW (100엔)",     unit: "원",    emoji: "💴" },
-  "fx-eur":     { name: "원/유로 환율", subtitle: "EUR/KRW",              unit: "원",    emoji: "💶" },
-  "fx-cny":     { name: "원/위안 환율", subtitle: "CNY/KRW",              unit: "원",    emoji: "💴" },
-  "gas-petrol": { name: "휘발유",       subtitle: "전국 평균 (오피넷 소매 + KRX 도매 시계열)", unit: "원/L",  emoji: "⛽" },
-  "gold-kr":    { name: "금 시세",      subtitle: "KRX 99.99K 1g (한국 시세)", unit: "원/g",  emoji: "🪙" },
-  "air-nrt":    { name: "도쿄 항공권",  subtitle: "ICN→NRT 왕복 최저가",  unit: "원",    emoji: "✈️" },
-  "air-tpe":    { name: "타이베이 항공권", subtitle: "ICN→TPE 왕복 최저가", unit: "원",  emoji: "✈️" },
+// 카테고리 이모지·단위 키 — 라벨은 i18n에서 동적 조회 (locale 분기)
+const CATEGORY_BASE: Record<string, { emoji: string; unitKey: string }> = {
+  "fx-usd":     { emoji: "💵", unitKey: "cat.unit.krw" },
+  "fx-jpy":     { emoji: "💴", unitKey: "cat.unit.krw" },
+  "fx-eur":     { emoji: "💶", unitKey: "cat.unit.krw" },
+  "fx-cny":     { emoji: "💴", unitKey: "cat.unit.krw" },
+  "gas-petrol": { emoji: "⛽", unitKey: "cat.unit.perL" },
+  "gold-kr":    { emoji: "🪙", unitKey: "cat.unit.perG" },
+  "air-nrt":    { emoji: "✈️", unitKey: "cat.unit.krw" },
+  "air-tpe":    { emoji: "✈️", unitKey: "cat.unit.krw" },
 };
 
-export const CATEGORY_SLUGS = Object.keys(CATEGORY_META);
+export const CATEGORY_SLUGS = Object.keys(CATEGORY_BASE);
 
 // 사용자가 추가 가능한 추가 통화 — Frankfurter가 지원 + 한국인에게 친숙한 순.
 // 시스템 기본(USD/JPY/EUR/CNY)은 제외.
@@ -323,18 +383,26 @@ const CURRENCY_LOOKUP = new Map(
   ADDABLE_CURRENCIES.map((c) => [c.code, c]),
 );
 
-// 사용자 정의 fx-XYZ 슬러그에 대한 메타 동적 생성
+// 사용자 정의 fx-XYZ 슬러그에 대한 메타 동적 생성 (locale 반영)
 export function metaFor(slug: string): CategoryMeta | undefined {
-  if (CATEGORY_META[slug]) return CATEGORY_META[slug];
+  const base = CATEGORY_BASE[slug];
+  if (base) {
+    return {
+      name: t(`cat.${slug}.name`),
+      subtitle: t(`cat.${slug}.sub`),
+      unit: t(base.unitKey),
+      emoji: base.emoji,
+    };
+  }
   const m = slug.match(/^fx-([a-z]{3})$/);
   if (m) {
     const code = m[1].toUpperCase();
     const info = CURRENCY_LOOKUP.get(code);
     if (info) {
       return {
-        name: `원/${info.korean} 환율`,
+        name: t("cat.fxAdd.name", { code, korean: info.korean }),
         subtitle: `${code}/KRW`,
-        unit: "원",
+        unit: t("cat.unit.krw"),
         emoji: info.emoji,
       };
     }

@@ -5,18 +5,29 @@
 // 데모 단계. 운영 전 server-agent 또는 Supabase Edge Function 프록시로 이관 필요.
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { metaFor } from "./signals";
+import { scheduleLocalAlert } from "./notifications";
+import { isInCooldown, markNotified } from "./storage";
 
 const OPENROUTER_KEY = process.env.EXPO_PUBLIC_OPENROUTER_KEY;
+// Supabase Edge Function 프록시 URL — 있으면 클라가 키 노출 없이 프록시 호출.
+// 함수 코드: supabase/functions/news-sentiment/index.ts
+const PROXY_URL = process.env.EXPO_PUBLIC_NEWS_PROXY_URL;
 const MODEL = "google/gemini-2.5-flash";
 const CACHE_PREFIX = "eolmalka:news:v1:";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1시간
 
 export type NewsSentiment = "bullish" | "bearish" | "neutral";
 
+export type NewsHeadline = { title: string; link?: string };
+
 export type NewsResult = {
   sentiment: NewsSentiment;
+  // 0.0~1.0 — bias 강도 스케일. 구버전 캐시에는 없으므로 optional.
+  confidence?: number;
   summary: string;       // 한 줄 한국어 요약 (40자 이내)
-  headlines: string[];   // 사용한 헤드라인 (출처 표시용)
+  headlines: string[];   // 사용한 헤드라인 (출처 표시용) — 구버전 호환 위해 유지
+  items?: NewsHeadline[]; // link 포함 (구버전 캐시 호환 위해 optional)
   fetchedAt: number;
   live: boolean;         // 실 LLM 호출이었는지(키 있고 성공) / 더미인지
 };
@@ -66,18 +77,18 @@ export async function getNewsSentiment(slug: string): Promise<NewsResult | null>
       fetchHeadlines(queries.ko, "ko", "KR"),
       queries.en
         ? fetchHeadlines(queries.en, "en", "US")
-        : Promise.resolve<string[]>([]),
+        : Promise.resolve<NewsHeadline[]>([]),
     ]);
     // 중복 제거하면서 ko 4개 + en 4개 우선 (밸런스)
-    const merged: string[] = [];
+    const mergedItems: NewsHeadline[] = [];
     const seen = new Set<string>();
-    const take = (arr: string[], n: number) => {
+    const take = (arr: NewsHeadline[], n: number) => {
       for (const h of arr) {
-        if (merged.length >= 8) break;
-        const key = h.trim().toLowerCase();
+        if (mergedItems.length >= 8) break;
+        const key = h.title.trim().toLowerCase();
         if (!seen.has(key)) {
           seen.add(key);
-          merged.push(h);
+          mergedItems.push(h);
           if (--n <= 0) break;
         }
       }
@@ -88,13 +99,16 @@ export async function getNewsSentiment(slug: string): Promise<NewsResult | null>
     take(koHeads, 8);
     take(enHeads, 8);
 
-    if (merged.length === 0) return cached ?? null;
+    if (mergedItems.length === 0) return cached ?? null;
+    const mergedTitles = mergedItems.map((x) => x.title);
 
-    if (!OPENROUTER_KEY) {
+    if (!OPENROUTER_KEY && !PROXY_URL) {
       const result: NewsResult = {
         sentiment: "neutral",
-        summary: "감성 분석 미설정 (OPENROUTER 키 필요)",
-        headlines: merged,
+        confidence: 0,
+        summary: "감성 분석 미설정 (OPENROUTER/Proxy 키 필요)",
+        headlines: mergedTitles,
+        items: mergedItems,
         fetchedAt: Date.now(),
         live: false,
       };
@@ -102,7 +116,15 @@ export async function getNewsSentiment(slug: string): Promise<NewsResult | null>
       return result;
     }
 
-    const result = await classifyWithLLM(slug, merged);
+    // 프록시 우선 (보안: 클라에 키 노출 안 됨)
+    const result = PROXY_URL
+      ? await classifyViaProxy(slug, mergedItems)
+      : await classifyWithLLM(slug, mergedItems);
+    // 큰 분위기 전환(bullish↔bearish) 감지 시 알림. neutral 경유는 신호로 안 침.
+    // 신뢰도 낮은 결과는 노이즈로 간주(0.5 이상만).
+    void notifyOnSentimentShift(slug, cached?.sentiment, result).catch((e) =>
+      console.warn("[news shift]", e),
+    );
     await writeCache(slug, result);
     return result;
   } catch (e) {
@@ -111,29 +133,32 @@ export async function getNewsSentiment(slug: string): Promise<NewsResult | null>
   }
 }
 
-// ── Google News RSS → 헤드라인 추출 ───────────────────
+// ── Google News RSS → 헤드라인 + link 추출 ────────────
 async function fetchHeadlines(
   query: string,
   hl: "ko" | "en" = "ko",
   gl: "KR" | "US" = "KR",
-): Promise<string[]> {
+): Promise<NewsHeadline[]> {
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${hl}&gl=${gl}&ceid=${gl}:${hl}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`News HTTP ${res.status}`);
   const xml = await res.text();
-  const titles: string[] = [];
+  const items: NewsHeadline[] = [];
   const itemRe = /<item>([\s\S]*?)<\/item>/g;
   const titleRe = /<title>(?:<!\[CDATA\[)?([^<\]]+?)(?:\]\]>)?<\/title>/;
+  const linkRe = /<link>([^<]+)<\/link>/;
   let m: RegExpExecArray | null;
   while ((m = itemRe.exec(xml)) !== null) {
     const tm = titleRe.exec(m[1]);
-    if (tm) {
-      const t = decodeEntities(tm[1].trim());
-      if (t) titles.push(t);
-    }
-    if (titles.length >= 10) break;
+    if (!tm) continue;
+    const title = decodeEntities(tm[1].trim());
+    if (!title) continue;
+    const lm = linkRe.exec(m[1]);
+    const link = lm ? lm[1].trim() : undefined;
+    items.push({ title, link });
+    if (items.length >= 10) break;
   }
-  return titles;
+  return items;
 }
 
 function decodeEntities(s: string): string {
@@ -148,14 +173,15 @@ function decodeEntities(s: string): string {
 // ── OpenRouter Gemini로 감성 분석 ─────────────────────
 async function classifyWithLLM(
   category: string,
-  headlines: string[],
+  items: NewsHeadline[],
 ): Promise<NewsResult> {
-  const prompt = `다음은 "${category}"에 대한 최근 한국·해외 뉴스 헤드라인입니다(한국어/영어 혼합). 한국 사용자가 사거나(또는 보유) 입장에서 가격이 오를 압력(bullish) / 내릴 압력(bearish) / 중립(neutral) 중 하나를 고르고, 핵심 흐름을 50자 이내 한국어로 요약하세요. 영어 헤드라인의 핵심도 한국어로 요약에 포함.
+  const titles = items.map((x) => x.title);
+  const prompt = `다음은 "${category}"에 대한 최근 한국·해외 뉴스 헤드라인입니다(한국어/영어 혼합). 한국 사용자가 사거나(또는 보유) 입장에서 가격이 오를 압력(bullish) / 내릴 압력(bearish) / 중립(neutral) 중 하나를 고르고, confidence(0.0~1.0)와 함께 핵심 흐름을 50자 이내 한국어로 요약하세요. confidence 기준: 헤드라인 다수가 같은 방향이고 강한 시그널이면 0.8+, 혼재·모호하면 0.3~0.5, 거의 무관하면 0.1 미만.
 
 헤드라인:
-${headlines.map((h, i) => `${i + 1}. ${h}`).join("\n")}
+${titles.map((h, i) => `${i + 1}. ${h}`).join("\n")}
 
-JSON만 출력: {"sentiment":"bullish|bearish|neutral","summary":"..."}`;
+JSON만 출력: {"sentiment":"bullish|bearish|neutral","confidence":0.0~1.0,"summary":"..."}`;
 
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -180,22 +206,33 @@ JSON만 출력: {"sentiment":"bullish|bearish|neutral","summary":"..."}`;
     choices?: Array<{ message?: { content?: string } }>;
   };
   const raw = json.choices?.[0]?.message?.content ?? "";
-  let parsed: { sentiment?: string; summary?: string } = {};
+  let parsed: { sentiment?: string; confidence?: number; summary?: string } = {};
   try {
     parsed = JSON.parse(raw);
   } catch {
     // JSON 파싱 실패 시 텍스트에서 패턴 추출
     const sm = /(bullish|bearish|neutral)/i.exec(raw);
-    parsed = { sentiment: sm?.[1]?.toLowerCase(), summary: raw.slice(0, 40) };
+    const cm = /"?confidence"?\s*:\s*([0-9.]+)/i.exec(raw);
+    parsed = {
+      sentiment: sm?.[1]?.toLowerCase(),
+      confidence: cm ? Number(cm[1]) : undefined,
+      summary: raw.slice(0, 40),
+    };
   }
   const sentiment: NewsSentiment =
     parsed.sentiment === "bullish" || parsed.sentiment === "bearish"
       ? parsed.sentiment
       : "neutral";
+  const rawConf = Number(parsed.confidence);
+  const confidence = Number.isFinite(rawConf)
+    ? Math.max(0, Math.min(1, rawConf))
+    : 0.6;
   return {
     sentiment,
+    confidence,
     summary: (parsed.summary ?? "").trim().slice(0, 60) || "최근 헤드라인 기반 분석",
-    headlines,
+    headlines: titles,
+    items,
     fetchedAt: Date.now(),
     live: true,
   };
@@ -216,6 +253,71 @@ async function writeCache(slug: string, result: NewsResult): Promise<void> {
   try {
     await AsyncStorage.setItem(`${CACHE_PREFIX}${slug}`, JSON.stringify(result));
   } catch {}
+}
+
+// ── 프록시(Supabase Edge Function) 호출 ─────────────
+async function classifyViaProxy(
+  category: string,
+  items: NewsHeadline[],
+): Promise<NewsResult> {
+  const titles = items.map((x) => x.title);
+  const res = await fetch(PROXY_URL!, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ category, headlines: titles }),
+  });
+  if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
+  const json = (await res.json()) as {
+    sentiment?: string;
+    confidence?: number;
+    summary?: string;
+    error?: string;
+  };
+  if (json.error) throw new Error(json.error);
+  const sentiment: NewsSentiment =
+    json.sentiment === "bullish" || json.sentiment === "bearish"
+      ? json.sentiment
+      : "neutral";
+  const rawConf = Number(json.confidence);
+  const confidence = Number.isFinite(rawConf)
+    ? Math.max(0, Math.min(1, rawConf))
+    : 0.6;
+  return {
+    sentiment,
+    confidence,
+    summary: (json.summary ?? "").trim().slice(0, 60) || "최근 헤드라인 기반 분석",
+    headlines: titles,
+    items,
+    fetchedAt: Date.now(),
+    live: true,
+  };
+}
+
+// ── 분위기 전환 감지 + 알림 ──────────────────────────
+async function notifyOnSentimentShift(
+  slug: string,
+  prev: NewsSentiment | undefined,
+  next: NewsResult,
+): Promise<void> {
+  if (!prev || !next.live) return;
+  // 큰 전환만: bullish ↔ bearish (neutral 경유는 평범)
+  const flipped =
+    (prev === "bullish" && next.sentiment === "bearish") ||
+    (prev === "bearish" && next.sentiment === "bullish");
+  if (!flipped) return;
+  if ((next.confidence ?? 0) < 0.5) return; // 신뢰도 낮으면 무시
+  if (await isInCooldown(slug, "signal")) return;
+
+  const meta = metaFor(slug);
+  if (!meta) return;
+  const dir = next.sentiment === "bullish" ? "📈 상승" : "📉 하락";
+  await scheduleLocalAlert({
+    title: `${dir} 분위기 전환 · ${meta.name}`,
+    body: next.summary,
+    data: { slug, source: "sentiment-shift" },
+    kind: "signal",
+  });
+  await markNotified(slug, "signal");
 }
 
 export const SENTIMENT_STYLE: Record<
