@@ -63,7 +63,7 @@ export function NativeAdCard() {
           </NativeAsset>
         </View>
       </View>
-      <NativeMediaView style={styles.media} />
+      {ad.mediaContent ? <NativeMediaView style={styles.media} /> : null}
       <NativeAsset assetType={NativeAssetType.CALL_TO_ACTION}>
         <View style={styles.ctaBtn}>
           <Text style={styles.ctaText}>{ad.callToAction}</Text>

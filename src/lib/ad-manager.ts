@@ -23,33 +23,45 @@ const appOpenUnitId =
     ? process.env.EXPO_PUBLIC_ADMOB_APPOPEN_ANDROID || TestIds.APP_OPEN
     : process.env.EXPO_PUBLIC_ADMOB_APPOPEN_IOS || TestIds.APP_OPEN;
 
-// 세션당 1회 추적
+// ── 전면 광고 ──────────────────────────────────────────────────────────────
+// 앱 시작 시 preload, 자연스러운 전환점(상세 → 메인 복귀)에서 show.
+// AdMob 정책: 앱 시작 직후 즉시 노출 금지.
+let interstitialAd: InterstitialAd | null = null;
+let interstitialLoaded = false;
 let interstitialShown = false;
 
-// 전면 광고: 세션당 1회만 노출. 이미 노출됐으면 무시.
-export function showInterstitialOnce(): void {
-  if (interstitialShown || Platform.OS === "web") return;
-  interstitialShown = true;
+export function preloadInterstitial(): void {
+  if (Platform.OS === "web") return;
 
-  const ad = InterstitialAd.createForAdRequest(interstitialUnitId, {
+  interstitialAd = InterstitialAd.createForAdRequest(interstitialUnitId, {
     requestNonPersonalizedAdsOnly: true,
   });
 
-  const unsubLoaded = ad.addAdEventListener(AdEventType.LOADED, () => {
-    unsubLoaded();
-    ad.show().catch(() => {});
+  interstitialAd.addAdEventListener(AdEventType.LOADED, () => {
+    interstitialLoaded = true;
   });
 
-  const unsubError = ad.addAdEventListener(AdEventType.ERROR, () => {
-    unsubError();
-    // 로드 실패 시 다음 세션에서 다시 시도하도록 플래그 복원
-    interstitialShown = false;
+  interstitialAd.addAdEventListener(AdEventType.ERROR, () => {
+    interstitialLoaded = false;
+    interstitialAd = null;
   });
 
-  ad.load();
+  interstitialAd.load();
 }
 
-// 보상형 광고: 시청 완료 시 true, 닫힘/실패 시 false 반환.
+// 상세 화면에서 복귀 시 호출 — 세션당 1회만 노출.
+export function showInterstitialOnce(): void {
+  if (interstitialShown || Platform.OS === "web") return;
+  if (!interstitialAd || !interstitialLoaded) return;
+
+  interstitialShown = true;
+  interstitialAd.show().catch(() => {
+    interstitialShown = false;
+  });
+}
+
+// ── 보상형 광고 ────────────────────────────────────────────────────────────
+// 시청 완료 시 true, 닫힘/실패 시 false 반환.
 export function showRewardedAd(): Promise<boolean> {
   if (Platform.OS === "web") return Promise.resolve(true);
 
@@ -78,6 +90,7 @@ export function showRewardedAd(): Promise<boolean> {
   });
 }
 
+// ── 앱오프닝 광고 ──────────────────────────────────────────────────────────
 let appOpenAd: AppOpenAd | null = null;
 let appOpenLastShownAt = 0;
 const APP_OPEN_INTERVAL = 4 * 60 * 60 * 1000; // 4시간
@@ -106,7 +119,7 @@ export function showAppOpenAd(): void {
     .show()
     .then(() => {
       appOpenLastShownAt = now;
-      loadAppOpenAd(); // 다음 표시를 위해 미리 로드
+      loadAppOpenAd();
     })
     .catch(() => {
       loadAppOpenAd();

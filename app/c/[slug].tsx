@@ -15,7 +15,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import { AdBanner } from "@/components/AdBanner";
-import { showRewardedAd } from "@/lib/ad-manager";
+import { showInterstitialOnce, showRewardedAd } from "@/lib/ad-manager";
 import { Sparkline } from "@/components/Sparkline";
 import { backtestForecast, getSeries, type Series } from "@/lib/demo-series";
 import {
@@ -75,6 +75,11 @@ export default function CategoryScreen() {
         : slug === "gas-lpg"
           ? "C004"
           : undefined;
+
+  // 상세 화면 퇴장 시 전면 광고 1회 노출 (앱 시작 직후 즉시 노출 금지 정책 준수)
+  useEffect(() => {
+    return () => { showInterstitialOnce(); };
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
