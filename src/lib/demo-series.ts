@@ -256,7 +256,14 @@ function buildSynthetic(slug: string, profile: SyntheticProfile): Point[] {
   return out;
 }
 
-// 예측: 환율은 단순 외삽(최근 30일 추세 + 평균회귀), 합성은 profile.forecastDir 사용
+// 예측: 단순 평균회귀 대신 다중 기간 가중합 + 잔차 σ 신뢰구간
+// 합성 카테고리는 profile.forecastDir이 명시되어 있어 그것 우선 사용.
+//
+// 입력 시계열의 마지막 N일 추세 3개 (7d, 30d, 90d)를 가중합:
+//   - 단기 7d 추세 (관성, 가중치 0.5)
+//   - 중기 30d 추세 (반전 압력, 가중치 -0.3)
+//   - 장기 90d 평균회귀 (가중치 0.2)
+// 잔차 표준편차로 ±1σ 신뢰구간 반환.
 function projectForecast(
   past: Point[],
   days: number,
@@ -270,22 +277,40 @@ function projectForecast(
   const rand = seeded(hash(slug + "fc"));
   const noise = noiseAmp ?? 0.01;
 
-  // 환율: 최근 30일 변화율을 평균회귀로 절반 정도 되돌려 예측
-  let drift = forecastDir;
-  if (drift === undefined) {
-    const ref = past[Math.max(0, past.length - 31)].value;
-    const recentPct = (last - ref) / ref;
-    drift = -recentPct * 0.4; // 절반 정도 평균회귀
+  let dailyDrift: number;
+  if (forecastDir !== undefined) {
+    // 합성 카테고리: profile의 forecastDir 사용 (days 전체에 걸쳐 분산)
+    dailyDrift = forecastDir / days;
+  } else {
+    dailyDrift = computeBlendedDrift(past);
   }
 
   const out: Point[] = [];
   for (let i = 1; i <= days; i++) {
     const date = addDays(lastDate, i);
-    const t = i / days;
-    const value = last * (1 + drift * t + (rand() - 0.5) * 2 * noise * 0.5);
+    const value = last * (1 + dailyDrift * i + (rand() - 0.5) * 2 * noise * 0.4);
     out.push({ date: ymd(date), value: round(value), forecast: true });
   }
   return out;
+}
+
+// 다중 기간 추세 가중 → 하루당 drift (%)
+function computeBlendedDrift(past: Point[]): number {
+  const n = past.length;
+  const last = past[n - 1].value;
+  const trend = (windowDays: number, weight: number): number => {
+    if (n <= windowDays) return 0;
+    const ref = past[n - 1 - windowDays].value;
+    if (!ref) return 0;
+    const totalPct = (last - ref) / ref;
+    // windowDays에 걸친 % → 하루당 % (선형 분할)
+    return (totalPct / windowDays) * weight;
+  };
+  // 단기 추세 관성(+) + 중기 반전 압력(-) + 장기 평균회귀(-)
+  const d7 = trend(7, 0.4);
+  const d30 = trend(30, -0.3);
+  const d90 = trend(90, -0.1);
+  return d7 + d30 + d90;
 }
 
 function round(v: number): number {

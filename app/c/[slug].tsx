@@ -30,6 +30,7 @@ import {
   SENTIMENT_STYLE,
   type NewsResult,
 } from "@/lib/news-provider";
+import { upcomingEvents, type UpcomingEvent } from "@/lib/macro-events";
 
 export default function CategoryScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -83,6 +84,7 @@ export default function CategoryScreen() {
   const fcDelta = forecastChange(series);
   const fcSummary = forecastSummary(series);
   const dow = dayOfWeekStats(series);
+  const events = upcomingEvents(slug, 60, 5);
   const s = SIGNAL_STYLE[stats.signal];
 
   const saveTarget = async () => {
@@ -225,6 +227,34 @@ export default function CategoryScreen() {
             MA30 {fmt(stats.ma30)}
           </Text>
         </View>
+
+        {events.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>🗓️ 다가오는 거시 이벤트 (60일)</Text>
+            <View style={styles.evCard}>
+              {events.map((e) => (
+                <View key={e.date + e.type} style={styles.evRow}>
+                  <Text style={styles.evEmoji}>{e.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.evTitle} numberOfLines={1}>
+                      {e.title}
+                      {e.importance === "high" && (
+                        <Text style={{ color: "#fb7185" }}>  ⭐</Text>
+                      )}
+                    </Text>
+                    <Text style={styles.evDate}>{e.date}</Text>
+                  </View>
+                  <Text style={styles.evDday}>
+                    D-{e.daysAhead === 0 ? "DAY" : e.daysAhead}
+                  </Text>
+                </View>
+              ))}
+              <Text style={styles.tinyMuted}>
+                ※ 예상 일정 — 공식 발표 일정은 변동 가능. ⭐ = 시장 변동성 큰 이벤트.
+              </Text>
+            </View>
+          </>
+        )}
 
         {dow && (
           <>
@@ -640,4 +670,28 @@ const styles = StyleSheet.create({
   },
   dowDay: { color: "#d4d4d8", fontSize: 12, fontWeight: "700" },
   dowPct: { fontSize: 10, fontWeight: "600", marginTop: 4 },
+  evCard: {
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#27272a",
+    padding: 12,
+    gap: 8,
+  },
+  evRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 4,
+  },
+  evEmoji: { fontSize: 18 },
+  evTitle: { color: "#fafafa", fontSize: 13, fontWeight: "600" },
+  evDate: { color: "#71717a", fontSize: 10, marginTop: 2 },
+  evDday: {
+    color: "#a3e635",
+    fontSize: 12,
+    fontWeight: "800",
+    minWidth: 50,
+    textAlign: "right",
+  },
 });
