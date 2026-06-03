@@ -1,7 +1,9 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { AppState } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { initAppOpenAd, showAppOpenAd } from "@/lib/ad-manager";
 import { registerBackgroundCheck } from "@/lib/background-check";
 import { setupNotifications } from "@/lib/notifications";
 
@@ -9,6 +11,11 @@ export default function RootLayout() {
   useEffect(() => {
     void setupNotifications();
     void registerBackgroundCheck();
+    initAppOpenAd();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") showAppOpenAd();
+    });
+    return () => sub.remove();
   }, []);
 
   return (

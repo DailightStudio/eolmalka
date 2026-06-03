@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import {
   AdEventType,
+  AppOpenAd,
   InterstitialAd,
   RewardedAd,
   RewardedAdEventType,
@@ -16,6 +17,11 @@ const rewardedUnitId =
   Platform.OS === "android"
     ? process.env.EXPO_PUBLIC_ADMOB_REWARDED_ANDROID || TestIds.REWARDED
     : process.env.EXPO_PUBLIC_ADMOB_REWARDED_IOS || TestIds.REWARDED;
+
+const appOpenUnitId =
+  Platform.OS === "android"
+    ? process.env.EXPO_PUBLIC_ADMOB_APPOPEN_ANDROID || TestIds.APP_OPEN
+    : process.env.EXPO_PUBLIC_ADMOB_APPOPEN_IOS || TestIds.APP_OPEN;
 
 // 세션당 1회 추적
 let interstitialShown = false;
@@ -70,4 +76,39 @@ export function showRewardedAd(): Promise<boolean> {
 
     ad.load();
   });
+}
+
+let appOpenAd: AppOpenAd | null = null;
+let appOpenLastShownAt = 0;
+const APP_OPEN_INTERVAL = 4 * 60 * 60 * 1000; // 4시간
+
+export function initAppOpenAd(): void {
+  if (Platform.OS === "web") return;
+  loadAppOpenAd();
+}
+
+function loadAppOpenAd(): void {
+  appOpenAd = AppOpenAd.createForAdRequest(appOpenUnitId, {
+    requestNonPersonalizedAdsOnly: true,
+  });
+  appOpenAd.addAdEventListener(AdEventType.ERROR, () => {
+    appOpenAd = null;
+  });
+  appOpenAd.load();
+}
+
+export function showAppOpenAd(): void {
+  if (Platform.OS === "web" || !appOpenAd) return;
+  const now = Date.now();
+  if (now - appOpenLastShownAt < APP_OPEN_INTERVAL) return;
+
+  appOpenAd
+    .show()
+    .then(() => {
+      appOpenLastShownAt = now;
+      loadAppOpenAd(); // 다음 표시를 위해 미리 로드
+    })
+    .catch(() => {
+      loadAppOpenAd();
+    });
 }

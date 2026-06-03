@@ -4,3 +4,5 @@ export function showInterstitialOnce(): void {}
 export function showRewardedAd(): Promise<boolean> {
   return Promise.resolve(true);
 }
+export function initAppOpenAd(): void {}
+export function showAppOpenAd(): void {}
