@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Link, useFocusEffect } from "expo-router";
 import { AdBanner } from "@/components/AdBanner";
+import { NativeAdCard } from "@/components/NativeAdCard";
 import { showInterstitialOnce } from "@/lib/ad-manager";
 import { Sparkline } from "@/components/Sparkline";
 import { iconSourceFor } from "@/lib/icon-sources";
@@ -44,6 +45,10 @@ type Card = {
   stats: ReturnType<typeof computeStats>;
   nextEvent?: UpcomingEvent;
 };
+
+type ListItem =
+  | { type: "card"; data: Card }
+  | { type: "native_ad"; key: string };
 
 export default function HomeScreen() {
   const [cards, setCards] = useState<Card[]>([]);
@@ -160,12 +165,26 @@ export default function HomeScreen() {
     return list.map((x) => x.c);
   }, [cards, favs, sort]);
 
+  // 카드 5개마다 네이티브 광고 1개 삽입
+  const listData = useMemo<ListItem[]>(() => {
+    const result: ListItem[] = [];
+    sorted.forEach((card, i) => {
+      result.push({ type: "card", data: card });
+      if ((i + 1) % 5 === 0) {
+        result.push({ type: "native_ad", key: `ad-${i}` });
+      }
+    });
+    return result;
+  }, [sorted]);
+
   return (
     <FlatList
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
-      data={sorted}
-      keyExtractor={(c) => c.slug}
+      data={listData}
+      keyExtractor={(item) =>
+        item.type === "card" ? item.data.slug : item.key
+      }
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -232,9 +251,16 @@ export default function HomeScreen() {
           </View>
         </View>
       }
-      renderItem={({ item }) => (
-        <CardRow card={item} isFav={favs.has(item.slug)} onFav={toggleFav} />
-      )}
+      renderItem={({ item }) => {
+        if (item.type === "native_ad") return <NativeAdCard />;
+        return (
+          <CardRow
+            card={item.data}
+            isFav={favs.has(item.data.slug)}
+            onFav={toggleFav}
+          />
+        );
+      }}
       ListEmptyComponent={
         loading ? (
           <View style={{ paddingVertical: 40, alignItems: "center" }}>
