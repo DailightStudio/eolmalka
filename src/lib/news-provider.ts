@@ -15,7 +15,8 @@ const OPENROUTER_KEY = process.env.EXPO_PUBLIC_OPENROUTER_KEY;
 const PROXY_URL = process.env.EXPO_PUBLIC_NEWS_PROXY_URL;
 const MODEL = "google/gemini-2.5-flash";
 const CACHE_PREFIX = "eolmalka:news:v1:";
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1시간
+const LLM_CACHE_PREFIX = "eolmalka:news:llm:v1:";
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1시간 — 헤드라인 재fetch 주기
 
 export type NewsSentiment = "bullish" | "bearish" | "neutral";
 
@@ -37,6 +38,14 @@ export type NewsResult = {
   fetchedAt: number;
   live: boolean;         // 실 LLM 호출이었는지(키 있고 성공) / 더미인지
   stale?: boolean;       // fetch 실패 시 만료 캐시를 반환한 경우
+};
+
+// LLM 점수 캐시 — 헤드라인 fingerprint 기반, TTL 없음 (내용 변경 시에만 갱신)
+type LlmCacheEntry = {
+  fingerprint: string;
+  sentiment: NewsSentiment;
+  confidence: number;
+  summary: string;
 };
 
 // 카테고리별 다국가·다관점 쿼리:
@@ -148,12 +157,28 @@ export async function getNewsSentiment(slug: string): Promise<NewsResult | null>
       return result;
     }
 
-    // 프록시 우선 (보안: 클라에 키 노출 안 됨)
+    // 헤드라인 fingerprint — 제목이 같으면 LLM 재호출 생략
+    const fp = headlineFingerprint(mergedItems);
+    const llmCache = await readLlmCache(slug);
+    if (llmCache && llmCache.fingerprint === fp) {
+      const result: NewsResult = {
+        sentiment: llmCache.sentiment,
+        confidence: llmCache.confidence,
+        summary: llmCache.summary,
+        headlines: mergedTitles,
+        items: mergedItems,
+        fetchedAt: Date.now(),
+        live: true,
+      };
+      await writeCache(slug, result);
+      return result;
+    }
+
+    // 헤드라인 변경 → LLM 호출 (프록시 우선)
     const result = PROXY_URL
       ? await classifyViaProxy(slug, mergedItems)
       : await classifyWithLLM(slug, mergedItems);
-    // 큰 분위기 전환(bullish↔bearish) 감지 시 알림. neutral 경유는 신호로 안 침.
-    // 신뢰도 낮은 결과는 노이즈로 간주(0.5 이상만).
+    await writeLlmCache(slug, fp, result);
     void notifyOnSentimentShift(slug, cached?.sentiment, result).catch((e) =>
       console.warn("[news shift]", e),
     );
@@ -289,6 +314,39 @@ JSON만 출력: {"sentiment":"bullish|bearish|neutral","confidence":0.0~1.0,"sum
   };
 }
 
+// ── 헤드라인 fingerprint ──────────────────────────────
+// 제목 앞 40자씩 이어붙여 내용 변경 여부 판단. 완전한 해시 불필요 — 실용적 충분.
+function headlineFingerprint(items: NewsHeadline[]): string {
+  return items.map((x) => x.title.slice(0, 40)).join("|");
+}
+
+// ── LLM 점수 캐시 (fingerprint 기반, TTL 없음) ────────
+async function readLlmCache(slug: string): Promise<LlmCacheEntry | null> {
+  try {
+    const raw = await AsyncStorage.getItem(`${LLM_CACHE_PREFIX}${slug}`);
+    if (!raw) return null;
+    return JSON.parse(raw) as LlmCacheEntry;
+  } catch {
+    return null;
+  }
+}
+
+async function writeLlmCache(
+  slug: string,
+  fingerprint: string,
+  result: NewsResult,
+): Promise<void> {
+  try {
+    const entry: LlmCacheEntry = {
+      fingerprint,
+      sentiment: result.sentiment,
+      confidence: result.confidence ?? 0.6,
+      summary: result.summary,
+    };
+    await AsyncStorage.setItem(`${LLM_CACHE_PREFIX}${slug}`, JSON.stringify(entry));
+  } catch {}
+}
+
 // ── 캐시 ──────────────────────────────────────────────
 async function readCache(slug: string): Promise<NewsResult | null> {
   try {
@@ -308,7 +366,10 @@ async function writeCache(slug: string, result: NewsResult): Promise<void> {
 
 export async function clearNewsCache(slug: string): Promise<void> {
   try {
-    await AsyncStorage.removeItem(`${CACHE_PREFIX}${slug}`);
+    await Promise.all([
+      AsyncStorage.removeItem(`${CACHE_PREFIX}${slug}`),
+      AsyncStorage.removeItem(`${LLM_CACHE_PREFIX}${slug}`),
+    ]);
   } catch {}
 }
 
