@@ -21,33 +21,38 @@ export type NewsResult = {
   live: boolean;         // 실 LLM 호출이었는지(키 있고 성공) / 더미인지
 };
 
-const QUERIES: Record<string, string> = {
-  "fx-usd":     "원달러 환율",
-  "fx-jpy":     "엔화 환율",
-  "fx-eur":     "유로 환율",
-  "fx-cny":     "위안화 환율",
-  "fx-gbp":     "파운드 환율",
-  "fx-aud":     "호주달러 환율",
-  "fx-cad":     "캐나다달러 환율",
-  "fx-chf":     "스위스프랑 환율",
-  "fx-hkd":     "홍콩달러 환율",
-  "fx-sgd":     "싱가포르달러 환율",
-  "fx-thb":     "태국바트 환율",
-  "fx-nzd":     "뉴질랜드달러 환율",
-  "fx-inr":     "인도루피 환율",
-  "fx-vnd":     "베트남동 환율",
-  "fx-try":     "터키리라 환율",
-  "fx-mxn":     "멕시코페소 환율",
-  "fx-php":     "필리핀페소 환율",
-  "gas-petrol": "휘발유 가격 한국",
-  "gold-kr":    "금 시세 국제",
-  "air-nrt":    "도쿄 항공권 가격",
-  "air-tpe":    "타이베이 항공권 가격",
+// 카테고리별 다국가·다관점 쿼리:
+//   ko: 한국 매체 시점 (KRW 입장)
+//   en: 본국·국제 매체 시점 (Fed/BOJ/ECB/OPEC 등)
+// Gemini가 둘 다 종합해 한국 사용자 관점에서 평가.
+type Queries = { ko: string; en?: string };
+const QUERIES: Record<string, Queries> = {
+  "fx-usd":     { ko: "원달러 환율 한국은행", en: "Fed FOMC dollar interest rate" },
+  "fx-jpy":     { ko: "엔화 환율 일본은행",   en: "BOJ yen Japan monetary policy" },
+  "fx-eur":     { ko: "유로 환율 ECB",        en: "ECB euro inflation rates" },
+  "fx-cny":     { ko: "위안화 환율 중국",     en: "PBOC yuan China economy" },
+  "fx-gbp":     { ko: "파운드 환율 영국",     en: "BoE pound UK rates" },
+  "fx-aud":     { ko: "호주달러 환율",        en: "RBA Australia dollar rates" },
+  "fx-cad":     { ko: "캐나다달러 환율",      en: "BoC Canada dollar rates" },
+  "fx-chf":     { ko: "스위스프랑 환율",      en: "SNB Swiss franc" },
+  "fx-hkd":     { ko: "홍콩달러 환율",        en: "Hong Kong dollar HKMA" },
+  "fx-sgd":     { ko: "싱가포르달러 환율",    en: "MAS Singapore dollar" },
+  "fx-thb":     { ko: "태국바트 환율",        en: "Bank of Thailand baht" },
+  "fx-nzd":     { ko: "뉴질랜드달러 환율",    en: "RBNZ New Zealand dollar" },
+  "fx-inr":     { ko: "인도루피 환율",        en: "RBI India rupee" },
+  "fx-vnd":     { ko: "베트남동 환율",        en: "Vietnam dong economy" },
+  "fx-try":     { ko: "터키리라 환율",        en: "Turkey lira CBRT" },
+  "fx-mxn":     { ko: "멕시코페소 환율",      en: "Mexico peso Banxico" },
+  "fx-php":     { ko: "필리핀페소 환율",      en: "Philippines peso BSP" },
+  "gas-petrol": { ko: "휘발유 가격 한국 오피넷", en: "OPEC oil price WTI Brent" },
+  "gold-kr":    { ko: "금 시세 한국",         en: "gold price LBMA Fed inflation" },
+  "air-nrt":    { ko: "도쿄 항공권 가격",     en: "Japan tourism airfare" },
+  "air-tpe":    { ko: "타이베이 항공권 가격", en: "Taiwan tourism airfare" },
 };
 
 export async function getNewsSentiment(slug: string): Promise<NewsResult | null> {
-  const query = QUERIES[slug];
-  if (!query) return null;
+  const queries = QUERIES[slug];
+  if (!queries) return null;
 
   // 캐시 hit?
   const cached = await readCache(slug);
@@ -56,15 +61,40 @@ export async function getNewsSentiment(slug: string): Promise<NewsResult | null>
   }
 
   try {
-    const headlines = await fetchHeadlines(query);
-    if (headlines.length === 0) return cached ?? null;
+    // 한국어·영어 헤드라인 병렬 fetch (한국 시점 + 본국/국제 시점)
+    const [koHeads, enHeads] = await Promise.all([
+      fetchHeadlines(queries.ko, "ko", "KR"),
+      queries.en
+        ? fetchHeadlines(queries.en, "en", "US")
+        : Promise.resolve<string[]>([]),
+    ]);
+    // 중복 제거하면서 ko 4개 + en 4개 우선 (밸런스)
+    const merged: string[] = [];
+    const seen = new Set<string>();
+    const take = (arr: string[], n: number) => {
+      for (const h of arr) {
+        if (merged.length >= 8) break;
+        const key = h.trim().toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push(h);
+          if (--n <= 0) break;
+        }
+      }
+    };
+    take(koHeads, 4);
+    take(enHeads, 4);
+    // 부족하면 채움
+    take(koHeads, 8);
+    take(enHeads, 8);
+
+    if (merged.length === 0) return cached ?? null;
 
     if (!OPENROUTER_KEY) {
-      // 키 없으면 헤드라인만 보여주고 감성은 neutral
       const result: NewsResult = {
         sentiment: "neutral",
         summary: "감성 분석 미설정 (OPENROUTER 키 필요)",
-        headlines: headlines.slice(0, 5),
+        headlines: merged,
         fetchedAt: Date.now(),
         live: false,
       };
@@ -72,7 +102,7 @@ export async function getNewsSentiment(slug: string): Promise<NewsResult | null>
       return result;
     }
 
-    const result = await classifyWithLLM(query, headlines.slice(0, 5));
+    const result = await classifyWithLLM(slug, merged);
     await writeCache(slug, result);
     return result;
   } catch (e) {
@@ -82,12 +112,15 @@ export async function getNewsSentiment(slug: string): Promise<NewsResult | null>
 }
 
 // ── Google News RSS → 헤드라인 추출 ───────────────────
-async function fetchHeadlines(query: string): Promise<string[]> {
-  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=ko&gl=KR&ceid=KR:ko`;
+async function fetchHeadlines(
+  query: string,
+  hl: "ko" | "en" = "ko",
+  gl: "KR" | "US" = "KR",
+): Promise<string[]> {
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${hl}&gl=${gl}&ceid=${gl}:${hl}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`News HTTP ${res.status}`);
   const xml = await res.text();
-  // <item> 안의 첫 <title> 만 추출 (channel <title>은 제외)
   const titles: string[] = [];
   const itemRe = /<item>([\s\S]*?)<\/item>/g;
   const titleRe = /<title>(?:<!\[CDATA\[)?([^<\]]+?)(?:\]\]>)?<\/title>/;
@@ -117,7 +150,7 @@ async function classifyWithLLM(
   category: string,
   headlines: string[],
 ): Promise<NewsResult> {
-  const prompt = `다음은 "${category}"에 대한 최근 한국 뉴스 헤드라인입니다. 가격이 오를 압력(bullish) / 내릴 압력(bearish) / 중립(neutral) 중 하나를 고르고, 핵심 흐름을 40자 이내 한국어로 요약하세요.
+  const prompt = `다음은 "${category}"에 대한 최근 한국·해외 뉴스 헤드라인입니다(한국어/영어 혼합). 한국 사용자가 사거나(또는 보유) 입장에서 가격이 오를 압력(bullish) / 내릴 압력(bearish) / 중립(neutral) 중 하나를 고르고, 핵심 흐름을 50자 이내 한국어로 요약하세요. 영어 헤드라인의 핵심도 한국어로 요약에 포함.
 
 헤드라인:
 ${headlines.map((h, i) => `${i + 1}. ${h}`).join("\n")}
