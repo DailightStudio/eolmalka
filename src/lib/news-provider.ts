@@ -75,6 +75,20 @@ const QUERIES: Record<string, Queries> = {
   "air-dps":    { ko: "발리 항공권 가격",         en: "Bali Indonesia tourism airfare" },
   "air-cdg":    { ko: "파리 유럽 항공권 가격",   en: "Paris France Europe airfare" },
   "air-lax":    { ko: "미국 로스앤젤레스 항공권", en: "Los Angeles USA airfare" },
+  "air-oka":    { ko: "오키나와 항공권 가격",       en: "Okinawa Japan tourism airfare" },
+  "air-kul":    { ko: "쿠알라룸푸르 항공권 가격",   en: "Kuala Lumpur Malaysia tourism airfare" },
+  "air-sgn":    { ko: "호치민 베트남 항공권 가격",   en: "Ho Chi Minh Vietnam tourism airfare" },
+  "air-han":    { ko: "하노이 베트남 항공권 가격",   en: "Hanoi Vietnam tourism airfare" },
+  "air-dad":    { ko: "다낭 베트남 항공권 가격",     en: "Da Nang Vietnam tourism airfare" },
+  "air-mnl":    { ko: "마닐라 필리핀 항공권 가격",   en: "Manila Philippines tourism airfare" },
+  "air-cgk":    { ko: "자카르타 인도네시아 항공권",  en: "Jakarta Indonesia tourism airfare" },
+  "air-pek":    { ko: "베이징 중국 항공권 가격",     en: "Beijing China tourism airfare" },
+  "air-pvg":    { ko: "상하이 중국 항공권 가격",     en: "Shanghai China tourism airfare" },
+  "air-lhr":    { ko: "런던 영국 항공권 가격",       en: "London UK Europe airfare" },
+  "air-syd":    { ko: "시드니 호주 항공권 가격",     en: "Sydney Australia airfare" },
+  "air-dxb":    { ko: "두바이 항공권 가격",         en: "Dubai UAE airfare" },
+  "air-gum":    { ko: "괌 항공권 가격",             en: "Guam tourism airfare" },
+  "air-jfk":    { ko: "뉴욕 미국 항공권 가격",       en: "New York USA airfare" },
 };
 
 export async function getNewsSentiment(slug: string): Promise<NewsResult | null> {

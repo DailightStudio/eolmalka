@@ -18,6 +18,20 @@ const ROUTES: Record<string, { origin: string; destination: string }> = {
   "air-dps": { origin: "ICN", destination: "DPS" },
   "air-cdg": { origin: "ICN", destination: "PAR" },
   "air-lax": { origin: "ICN", destination: "LAX" },
+  "air-oka": { origin: "ICN", destination: "OKA" },
+  "air-kul": { origin: "ICN", destination: "KUL" },
+  "air-sgn": { origin: "ICN", destination: "SGN" },
+  "air-han": { origin: "ICN", destination: "HAN" },
+  "air-dad": { origin: "ICN", destination: "DAD" },
+  "air-mnl": { origin: "ICN", destination: "MNL" },
+  "air-cgk": { origin: "ICN", destination: "JKT" },
+  "air-pek": { origin: "ICN", destination: "BJS" },
+  "air-pvg": { origin: "ICN", destination: "SHA" },
+  "air-lhr": { origin: "ICN", destination: "LON" },
+  "air-syd": { origin: "ICN", destination: "SYD" },
+  "air-dxb": { origin: "ICN", destination: "DXB" },
+  "air-gum": { origin: "ICN", destination: "GUM" },
+  "air-jfk": { origin: "ICN", destination: "NYC" },
 };
 
 export type AirFareResult = {

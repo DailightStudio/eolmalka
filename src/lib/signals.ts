@@ -413,6 +413,20 @@ export const ADDABLE_FLIGHTS: Array<{
   { slug: "air-dps", korean: "발리", emoji: "✈️", destination: "ICN→DPS" },
   { slug: "air-cdg", korean: "파리", emoji: "✈️", destination: "ICN→CDG" },
   { slug: "air-lax", korean: "LA", emoji: "✈️", destination: "ICN→LAX" },
+  { slug: "air-oka", korean: "오키나와", emoji: "✈️", destination: "ICN→OKA" },
+  { slug: "air-kul", korean: "쿠알라룸푸르", emoji: "✈️", destination: "ICN→KUL" },
+  { slug: "air-sgn", korean: "호치민", emoji: "✈️", destination: "ICN→SGN" },
+  { slug: "air-han", korean: "하노이", emoji: "✈️", destination: "ICN→HAN" },
+  { slug: "air-dad", korean: "다낭", emoji: "✈️", destination: "ICN→DAD" },
+  { slug: "air-mnl", korean: "마닐라", emoji: "✈️", destination: "ICN→MNL" },
+  { slug: "air-cgk", korean: "자카르타", emoji: "✈️", destination: "ICN→CGK" },
+  { slug: "air-pek", korean: "베이징", emoji: "✈️", destination: "ICN→PEK" },
+  { slug: "air-pvg", korean: "상하이", emoji: "✈️", destination: "ICN→PVG" },
+  { slug: "air-lhr", korean: "런던", emoji: "✈️", destination: "ICN→LHR" },
+  { slug: "air-syd", korean: "시드니", emoji: "✈️", destination: "ICN→SYD" },
+  { slug: "air-dxb", korean: "두바이", emoji: "✈️", destination: "ICN→DXB" },
+  { slug: "air-gum", korean: "괌", emoji: "✈️", destination: "ICN→GUM" },
+  { slug: "air-jfk", korean: "뉴욕", emoji: "✈️", destination: "ICN→JFK" },
 ];
 
 const CURRENCY_LOOKUP = new Map(

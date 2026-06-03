@@ -86,6 +86,20 @@ const SYN_PROFILES: Record<string, SyntheticProfile> = {
   "air-dps":    { base: 430000, yearlyAmp: 0.18, noiseAmp: 0.032, trend: 0.02, forecastDir:  0.05 },
   "air-cdg":    { base: 900000, yearlyAmp: 0.12, noiseAmp: 0.020, trend: 0.01, forecastDir:  0.02 },
   "air-lax":    { base: 860000, yearlyAmp: 0.11, noiseAmp: 0.018, trend: 0.01, forecastDir:  0.01 },
+  "air-oka":    { base: 280000, yearlyAmp: 0.20, noiseAmp: 0.028, trend: 0.00, forecastDir: -0.02 },
+  "air-kul":    { base: 400000, yearlyAmp: 0.14, noiseAmp: 0.026, trend: 0.01, forecastDir:  0.03 },
+  "air-sgn":    { base: 380000, yearlyAmp: 0.15, noiseAmp: 0.027, trend: 0.01, forecastDir:  0.03 },
+  "air-han":    { base: 360000, yearlyAmp: 0.15, noiseAmp: 0.027, trend: 0.01, forecastDir:  0.02 },
+  "air-dad":    { base: 340000, yearlyAmp: 0.16, noiseAmp: 0.028, trend: 0.01, forecastDir:  0.02 },
+  "air-mnl":    { base: 350000, yearlyAmp: 0.14, noiseAmp: 0.026, trend: 0.01, forecastDir:  0.03 },
+  "air-cgk":    { base: 480000, yearlyAmp: 0.13, noiseAmp: 0.025, trend: 0.01, forecastDir:  0.03 },
+  "air-pek":    { base: 220000, yearlyAmp: 0.12, noiseAmp: 0.022, trend: 0.00, forecastDir:  0.01 },
+  "air-pvg":    { base: 200000, yearlyAmp: 0.12, noiseAmp: 0.022, trend: 0.00, forecastDir:  0.01 },
+  "air-lhr":    { base: 1100000, yearlyAmp: 0.10, noiseAmp: 0.018, trend: 0.01, forecastDir:  0.02 },
+  "air-syd":    { base: 950000, yearlyAmp: 0.11, noiseAmp: 0.019, trend: 0.01, forecastDir:  0.02 },
+  "air-dxb":    { base: 750000, yearlyAmp: 0.10, noiseAmp: 0.018, trend: 0.01, forecastDir:  0.02 },
+  "air-gum":    { base: 400000, yearlyAmp: 0.18, noiseAmp: 0.028, trend: 0.00, forecastDir: -0.02 },
+  "air-jfk":    { base: 1200000, yearlyAmp: 0.09, noiseAmp: 0.016, trend: 0.01, forecastDir:  0.01 },
 };
 
 // 환율 슬러그 → Frankfurter base 통화 (fx-XXX 패턴이면 XXX 추출)
