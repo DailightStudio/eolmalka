@@ -19,7 +19,12 @@ const CACHE_TTL_MS = 60 * 60 * 1000; // 1시간
 
 export type NewsSentiment = "bullish" | "bearish" | "neutral";
 
-export type NewsHeadline = { title: string; link?: string };
+export type NewsHeadline = {
+  title: string;
+  link?: string;
+  source?: string;      // 뉴스 매체 이름 (예: "한국경제", "Reuters")
+  locale?: "ko" | "en"; // 국내/해외 구분
+};
 
 export type NewsResult = {
   sentiment: NewsSentiment;
@@ -139,6 +144,7 @@ async function fetchHeadlines(
   hl: "ko" | "en" = "ko",
   gl: "KR" | "US" = "KR",
 ): Promise<NewsHeadline[]> {
+  const locale = hl;
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${hl}&gl=${gl}&ceid=${gl}:${hl}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`News HTTP ${res.status}`);
@@ -147,6 +153,7 @@ async function fetchHeadlines(
   const itemRe = /<item>([\s\S]*?)<\/item>/g;
   const titleRe = /<title>(?:<!\[CDATA\[)?([^<\]]+?)(?:\]\]>)?<\/title>/;
   const linkRe = /<link>([^<]+)<\/link>/;
+  const srcRe = /<source[^>]*>([^<]+)<\/source>/;
   let m: RegExpExecArray | null;
   while ((m = itemRe.exec(xml)) !== null) {
     const tm = titleRe.exec(m[1]);
@@ -155,7 +162,9 @@ async function fetchHeadlines(
     if (!title) continue;
     const lm = linkRe.exec(m[1]);
     const link = lm ? lm[1].trim() : undefined;
-    items.push({ title, link });
+    const sm = srcRe.exec(m[1]);
+    const source = sm ? decodeEntities(sm[1].trim()) : undefined;
+    items.push({ title, link, source, locale });
     if (items.length >= 10) break;
   }
   return items;

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Image,
   Linking,
   Pressable,
   ScrollView,
@@ -34,6 +35,7 @@ import {
 import {
   getNewsSentiment,
   SENTIMENT_STYLE,
+  type NewsHeadline,
   type NewsResult,
 } from "@/lib/news-provider";
 import { upcomingEvents, type UpcomingEvent } from "@/lib/macro-events";
@@ -43,6 +45,7 @@ import {
   type SidoPrice,
   type SiGunGuPrice,
 } from "@/lib/gas-provider";
+import { iconSourceFor } from "@/lib/icon-sources";
 
 export default function CategoryScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -116,6 +119,7 @@ export default function CategoryScreen() {
     ? backtestForecast(series.past, slug, 30)
     : null;
   const s = SIGNAL_STYLE[stats.signal];
+  const iconSrc = iconSourceFor(slug);
 
   const saveTarget = async () => {
     const num = Number(draftTarget.replace(/,/g, ""));
@@ -216,7 +220,14 @@ export default function CategoryScreen() {
       >
         <View ref={captureBoxRef} collapsable={false} style={styles.captureBox}>
         <View style={styles.header}>
-          <Text style={styles.emoji}>{meta.emoji}</Text>
+          {iconSrc ? (
+            <Image
+              source={iconSrc}
+              style={{ width: 32, height: 32, resizeMode: "contain" }}
+            />
+          ) : (
+            <Text style={styles.emoji}>{meta.emoji}</Text>
+          )}
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{meta.name}</Text>
             <Text style={styles.sub}>{meta.subtitle}</Text>
@@ -594,8 +605,11 @@ export default function CategoryScreen() {
               <Text style={styles.newsSummary}>{news.summary}</Text>
               {(news.items?.length ?? news.headlines.length) > 0 && (
                 <View style={{ marginTop: 10, gap: 4 }}>
-                  {(news.items ?? news.headlines.map((h) => ({ title: h, link: undefined })))
-                    .slice(0, 3)
+                  {(news.items ??
+                    news.headlines.map(
+                      (h): NewsHeadline => ({ title: h }),
+                    ))
+                    .slice(0, 6)
                     .map((it, i) => (
                       <Pressable
                         key={i}
@@ -605,12 +619,49 @@ export default function CategoryScreen() {
                         disabled={!it.link}
                         hitSlop={4}
                       >
-                        <Text style={styles.newsItem} numberOfLines={2}>
-                          • {it.title}
-                          {it.link ? (
-                            <Text style={styles.newsItemLink}>  ↗</Text>
-                          ) : null}
-                        </Text>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "flex-start",
+                            gap: 6,
+                            marginBottom: 4,
+                          }}
+                        >
+                          {/* 국내/해외 뱃지 */}
+                          <Text
+                            style={{
+                              fontSize: 9.5,
+                              color: it.locale === "en" ? "#60a5fa" : "#a3e635",
+                              backgroundColor: "rgba(255,255,255,0.06)",
+                              paddingHorizontal: 4,
+                              paddingVertical: 1.5,
+                              borderRadius: 3,
+                              marginTop: 2,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {it.locale === "en" ? "해외" : "국내"}
+                          </Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.newsItem} numberOfLines={2}>
+                              {it.title}
+                              {it.link ? (
+                                <Text style={styles.newsItemLink}>  ↗</Text>
+                              ) : null}
+                            </Text>
+                            {it.source ? (
+                              <Text
+                                style={{
+                                  fontSize: 9.5,
+                                  color: "#52525b",
+                                  marginTop: 1,
+                                }}
+                              >
+                                {it.source}
+                              </Text>
+                            ) : null}
+                          </View>
+                        </View>
                       </Pressable>
                     ))}
                 </View>

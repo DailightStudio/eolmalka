@@ -5,6 +5,8 @@ import type { Point } from "@/lib/demo-series";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
+const VPAD = 16; // 위아래 터치 여백 (그래프 선 위뿐 아니라 여유 영역도 터치 가능)
+
 type Props = {
   past: Point[];
   forecast?: Point[];
@@ -140,15 +142,19 @@ export function Sparkline({
   let tipLeft = 0;
   const TIP_W = 110; // 툴팁 영역 추정 너비
   if (tooltip) {
-    // "2025.06.03" 형식
-    dateLabel = tooltip.point.date.replace(/-/g, ".");
-    priceLabel = fmtPrice(tooltip.point.value) + (tooltip.isForecast ? " (예측)" : "");
+    // "6월 3일" 형식 (연도 제거, 한국식)
+    const d = new Date(tooltip.point.date + "T00:00:00Z");
+    dateLabel = `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일`;
+    priceLabel = fmtPrice(tooltip.point.value);
     // 크로스헤어 x에 맞춰 좌우 클램프
     tipLeft = Math.max(0, Math.min(width - TIP_W, tooltip.x - TIP_W / 2));
   }
 
   return (
-    <View {...panResponder.panHandlers} style={{ width, height }}>
+    <View
+      {...panResponder.panHandlers}
+      style={{ width, height: height + VPAD * 2, paddingVertical: VPAD }}
+    >
       <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
         {bandPath ? (
           <Path d={bandPath} fill={stroke} opacity={0.13} stroke="none" />
@@ -195,23 +201,24 @@ export function Sparkline({
           pointerEvents="none"
           style={{
             position: "absolute",
-            top: 4,
+            top: VPAD + 4,
             left: tipLeft,
             width: TIP_W,
           }}
         >
           <Text
-            style={{ color: "#6b7280", fontSize: 10.5, lineHeight: 14 }}
+            style={{ color: "#6b7280", fontSize: 10, lineHeight: 13 }}
             numberOfLines={1}
           >
             {dateLabel}
+            {tooltip.isForecast ? "  예측" : ""}
           </Text>
           <Text
             style={{
               color: "#e6eef8",
-              fontSize: 14.5,
-              fontWeight: "700",
-              lineHeight: 19,
+              fontSize: 16,
+              fontWeight: "800",
+              lineHeight: 21,
             }}
             numberOfLines={1}
           >

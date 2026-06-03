@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -9,6 +10,7 @@ import {
 } from "react-native";
 import { Link, useFocusEffect } from "expo-router";
 import { Sparkline } from "@/components/Sparkline";
+import { iconSourceFor } from "@/lib/icon-sources";
 import { getSeries, type Series } from "@/lib/demo-series";
 import {
   SIGNAL_STYLE,
@@ -290,6 +292,7 @@ function CardRow({
   const s = SIGNAL_STYLE[stats.signal];
   const positive = stats.change30d > 0;
   const evHigh = nextEvent?.importance === "high";
+  const iconSrc = iconSourceFor(slug);
   return (
     <View style={[styles.card, { borderColor: s.border, backgroundColor: s.bg }]}>
       <Pressable
@@ -304,7 +307,11 @@ function CardRow({
       <Link href={`/c/${slug}`} asChild>
         <Pressable style={styles.cardInner}>
           <View style={styles.cardTop}>
-            <Text style={styles.emoji}>{meta.emoji}</Text>
+            {iconSrc ? (
+              <Image source={iconSrc} style={styles.icon} />
+            ) : (
+              <Text style={styles.emoji}>{meta.emoji}</Text>
+            )}
             <View style={{ flex: 1 }}>
               <View style={styles.row}>
                 <Text style={styles.name}>{meta.name}</Text>
@@ -438,6 +445,7 @@ const styles = StyleSheet.create({
   favOn: { color: "#fbbf24" },
   cardTop: { flexDirection: "row", gap: 10 },
   emoji: { fontSize: 24 },
+  icon: { width: 28, height: 28, resizeMode: "contain" },
   row: { flexDirection: "row", alignItems: "center", gap: 6 },
   name: { color: "#fafafa", fontSize: 15, fontWeight: "700" },
   liveTag: { color: "#a3e635", fontSize: 9, fontWeight: "800" },
