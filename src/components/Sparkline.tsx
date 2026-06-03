@@ -71,15 +71,16 @@ export function Sparkline({
     });
   };
 
+  // onStartShouldSetPanResponder: false → 세로 스크롤을 ScrollView에 양보
+  // 수평 드래그만 PanResponder가 가져감 (onMoveShouldSetPanResponder)
+  // 탭은 onTouchStart/onTouchEnd로 별도 처리
   const panResponder = useRef(
     PanResponder.create({
-      // 탭(손가락 내려놓기)은 항상 클레임 — 툴팁 즉시 반응
-      onStartShouldSetPanResponder: () => interactive,
-      // 드래그는 수평일 때만 — 수직은 ScrollView로 통과
+      onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, g) =>
-        interactive && Math.abs(g.dx) > Math.abs(g.dy) * 0.8,
-      // ScrollView가 스크롤 필요 시 제스처 양도 허용 → 세로 스크롤 막힘 해결
-      onPanResponderTerminationRequest: () => true,
+        interactive &&
+        Math.abs(g.dx) > Math.abs(g.dy) &&
+        Math.abs(g.dx) > 4,
       onPanResponderGrant: (evt) =>
         touchHandlerRef.current(evt.nativeEvent.locationX),
       onPanResponderMove: (evt) =>
@@ -160,7 +161,9 @@ export function Sparkline({
 
   return (
     <View
-      {...panResponder.panHandlers}
+      {...(interactive ? panResponder.panHandlers : {})}
+      onTouchStart={interactive ? (e) => touchHandlerRef.current(e.nativeEvent.locationX) : undefined}
+      onTouchEnd={interactive ? () => setTooltip(null) : undefined}
       style={{ width, height: height + VPAD * 2, paddingVertical: VPAD }}
     >
       <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
