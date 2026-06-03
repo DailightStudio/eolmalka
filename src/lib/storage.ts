@@ -159,3 +159,19 @@ export async function removeUserCategory(base: string): Promise<string[]> {
   } catch {}
   return next;
 }
+
+const ONBOARDING_DONE = "eolmalka:onboarding:v1";
+
+export async function loadOnboardingDone(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(ONBOARDING_DONE)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export async function saveOnboardingDone(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(ONBOARDING_DONE, "1");
+  } catch {}
+}

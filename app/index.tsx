@@ -292,7 +292,16 @@ export default function HomeScreen() {
               <Text style={styles.addBtnText}>{t("home.add")}</Text>
             </Pressable>
           </Link>
-          <Text style={styles.footnote}>© JayLabs</Text>
+          <View style={{ alignItems: "center", gap: 4 }}>
+            <Link href="/privacy" asChild>
+              <Pressable>
+                <Text style={[styles.footnote, { color: "#4b5563", textDecorationLine: "underline" }]}>
+                  개인정보처리방침
+                </Text>
+              </Pressable>
+            </Link>
+            <Text style={styles.footnote}>© JayLabs</Text>
+          </View>
         </View>
       }
     />

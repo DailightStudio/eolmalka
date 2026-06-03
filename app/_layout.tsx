@@ -1,4 +1,4 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { AppState, Platform } from "react-native";
@@ -6,6 +6,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { initAppOpenAd, preloadInterstitial, showAppOpenAd } from "@/lib/ad-manager";
 import { registerBackgroundCheck } from "@/lib/background-check";
 import { setupNotifications } from "@/lib/notifications";
+import { loadOnboardingDone } from "@/lib/storage";
 
 async function setupAds() {
   if (Platform.OS === "web") return;
@@ -26,7 +27,13 @@ async function setupAds() {
 }
 
 export default function RootLayout() {
+  const router = useRouter();
+
   useEffect(() => {
+    void (async () => {
+      const done = await loadOnboardingDone();
+      if (!done) router.replace("/onboarding");
+    })();
     void setupNotifications();
     void registerBackgroundCheck();
     void setupAds();
@@ -54,6 +61,8 @@ export default function RootLayout() {
           name="add"
           options={{ presentation: "modal", title: "카테고리 추가" }}
         />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="privacy" options={{ title: "개인정보처리방침" }} />
       </Stack>
     </SafeAreaProvider>
   );
