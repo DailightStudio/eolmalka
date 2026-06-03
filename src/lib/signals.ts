@@ -97,6 +97,73 @@ export function forecastChange(series: Series): number {
   return round1(((avg - current) / current) * 100);
 }
 
+// 며칠 뒤 얼마인지 마일스톤(1d/3d/7d/30d) + 가장 싼/비싼 예상일
+export type ForecastMilestone = {
+  daysAhead: number;
+  date: string;
+  value: number;
+  changePct: number; // 현재 대비 %
+};
+
+export type ForecastSummary = {
+  current: number;
+  milestones: ForecastMilestone[];
+  cheapest: ForecastMilestone & { savingAbs: number };
+  highest: ForecastMilestone;
+};
+
+export function forecastSummary(series: Series): ForecastSummary | null {
+  const fc = series.forecast;
+  const past = series.past;
+  if (!fc.length || !past.length) return null;
+  const current = past[past.length - 1].value;
+
+  const wantedDays = [1, 3, 7, 30];
+  const milestones: ForecastMilestone[] = wantedDays
+    .filter((d) => d <= fc.length)
+    .map((d) => {
+      const p = fc[d - 1];
+      return {
+        daysAhead: d,
+        date: p.date,
+        value: round0(p.value),
+        changePct: round1(((p.value - current) / current) * 100),
+      };
+    });
+
+  let minIdx = 0;
+  let maxIdx = 0;
+  for (let i = 1; i < fc.length; i++) {
+    if (fc[i].value < fc[minIdx].value) minIdx = i;
+    if (fc[i].value > fc[maxIdx].value) maxIdx = i;
+  }
+  const minP = fc[minIdx];
+  const maxP = fc[maxIdx];
+
+  return {
+    current,
+    milestones,
+    cheapest: {
+      daysAhead: minIdx + 1,
+      date: minP.date,
+      value: round0(minP.value),
+      changePct: round1(((minP.value - current) / current) * 100),
+      savingAbs: Math.round(current - minP.value),
+    },
+    highest: {
+      daysAhead: maxIdx + 1,
+      date: maxP.date,
+      value: round0(maxP.value),
+      changePct: round1(((maxP.value - current) / current) * 100),
+    },
+  };
+}
+
+function round0(v: number): number {
+  if (v >= 1000) return Math.round(v);
+  return Math.round(v * 100) / 100;
+}
+
 // RN 호환 색상 (rgba bg, hex border/stroke)
 export const SIGNAL_STYLE: Record<
   Signal,

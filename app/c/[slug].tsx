@@ -15,6 +15,7 @@ import {
   SIGNAL_STYLE,
   computeStats,
   forecastChange,
+  forecastSummary,
   metaFor,
 } from "@/lib/signals";
 import { VERDICT_LABEL } from "@/lib/quartiles";
@@ -79,6 +80,7 @@ export default function CategoryScreen() {
 
   const stats = computeStats(series);
   const fcDelta = forecastChange(series);
+  const fcSummary = forecastSummary(series);
   const s = SIGNAL_STYLE[stats.signal];
 
   const saveTarget = async () => {
@@ -221,6 +223,74 @@ export default function CategoryScreen() {
             MA30 {fmt(stats.ma30)}
           </Text>
         </View>
+
+        {fcSummary && (
+          <>
+            <Text style={styles.sectionTitle}>🔮 예측 (참고용 통계 모델)</Text>
+            <View style={styles.fcCard}>
+              <View style={styles.fcGrid}>
+                {fcSummary.milestones.map((m) => {
+                  const up = m.changePct > 0;
+                  return (
+                    <View key={m.daysAhead} style={styles.fcCell}>
+                      <Text style={styles.fcLabel}>
+                        {m.daysAhead === 1 ? "내일" : `${m.daysAhead}일 뒤`}
+                      </Text>
+                      <Text style={styles.fcVal}>
+                        {m.value.toLocaleString()}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.fcPct,
+                          { color: up ? "#fb7185" : "#a3e635" },
+                        ]}
+                      >
+                        {up ? "+" : ""}
+                        {m.changePct}%
+                      </Text>
+                      <Text style={styles.fcDate}>{m.date.slice(5)}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+
+              <View style={styles.fcHighlight}>
+                {fcSummary.cheapest.daysAhead > 0 &&
+                fcSummary.cheapest.savingAbs > 0 ? (
+                  <Text style={styles.fcCheapText}>
+                    <Text style={{ color: "#a3e635", fontWeight: "800" }}>
+                      💰 예상 최저
+                    </Text>
+                    <Text style={styles.muted}>
+                      {"  "}
+                      {fcSummary.cheapest.date}{" "}
+                      ({fcSummary.cheapest.daysAhead}일 뒤)
+                    </Text>
+                    {"\n"}
+                    <Text style={styles.fcCheapValue}>
+                      {fcSummary.cheapest.value.toLocaleString()}
+                      {meta.unit.replace(/^원/, "")}{" "}
+                    </Text>
+                    <Text style={{ color: "#a3e635" }}>
+                      ({fcSummary.cheapest.changePct}%, ~
+                      {fcSummary.cheapest.savingAbs.toLocaleString()}원 절약)
+                    </Text>
+                  </Text>
+                ) : (
+                  <Text style={styles.fcCheapText}>
+                    <Text style={{ color: "#a3e635", fontWeight: "800" }}>
+                      💡 오늘이 30일 내 최저
+                    </Text>
+                    <Text style={styles.muted}>{"  "}— 지금 사세요</Text>
+                  </Text>
+                )}
+              </View>
+              <Text style={styles.tinyMuted}>
+                ※ 단순 평균회귀 모델. 시장 이벤트(FOMC·CPI 등) 미반영.
+              </Text>
+            </View>
+          </>
+        )}
 
         <Text style={styles.sectionTitle}>📰 시장 분위기 (뉴스)</Text>
         <View style={styles.newsCard}>
@@ -462,4 +532,35 @@ const styles = StyleSheet.create({
   },
   newsSummary: { color: "#fafafa", fontSize: 14, marginTop: 8, lineHeight: 20 },
   newsItem: { color: "#a1a1aa", fontSize: 11, lineHeight: 16 },
+  fcCard: {
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#27272a",
+    padding: 12,
+  },
+  fcGrid: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  fcCell: {
+    flex: 1,
+    borderRadius: 10,
+    backgroundColor: "rgba(24,24,27,0.6)",
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    alignItems: "center",
+  },
+  fcLabel: { color: "#71717a", fontSize: 10, fontWeight: "600" },
+  fcVal: { color: "#fafafa", fontSize: 13, fontWeight: "800", marginTop: 4 },
+  fcPct: { fontSize: 11, fontWeight: "700", marginTop: 2 },
+  fcDate: { color: "#52525b", fontSize: 9, marginTop: 2 },
+  fcHighlight: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#27272a",
+  },
+  fcCheapText: { fontSize: 12, lineHeight: 18 },
+  fcCheapValue: { color: "#fafafa", fontSize: 15, fontWeight: "800" },
 });
