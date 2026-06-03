@@ -345,7 +345,7 @@ function CardRow({
                 </Text>
               </View>
               <Sparkline
-                past={series.past.slice(-90)}
+                past={series.past}
                 forecast={series.forecast}
                 width={280}
                 height={44}
