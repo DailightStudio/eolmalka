@@ -43,6 +43,16 @@ function seeded(seed: number): () => number {
     return s / 0xffffffff;
   };
 }
+
+// Box-Muller: 균등 난수 2개 → 표준정규 N(0,1).
+// projectForecast 노이즈를 정규분포로 통일해 backtestForecast의
+// ±1σ 신뢰구간 커버리지 계산(정규분포 가정)과 일관성 확보.
+function normalRand(rand: () => number): number {
+  const u1 = Math.max(1e-10, rand()); // ln(0) 방지
+  const u2 = rand();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
 function hash(str: string): number {
   let h = 2166136261;
   for (let i = 0; i < str.length; i++) {
@@ -316,7 +326,7 @@ function projectForecast(
   const out: Point[] = [];
   for (let i = 1; i <= days; i++) {
     const date = addDays(lastDate, i);
-    let value = last * (1 + dailyDrift * i + (rand() - 0.5) * 2 * noise * 0.4);
+    let value = last * (1 + dailyDrift * i + normalRand(rand) * noise * 0.4);
     if (seasonal) value *= seasonal(date);
     out.push({ date: ymd(date), value: round(value), forecast: true });
   }
@@ -414,22 +424,30 @@ export function backtestForecast(
   };
 }
 
-// 일별 수익률의 표준편차 (최근 60일)
+// 일별 수익률의 표준편차.
+// 최근 60일(60%) + 전체 히스토리(40%) 혼합: 조용한 구간에서 σ 과소추정 방지.
 function computeDailySigma(past: Point[]): number {
   const n = past.length;
   if (n < 5) return 0.01;
-  const window = Math.min(60, n - 1);
-  const rets: number[] = [];
-  for (let i = n - window; i < n; i++) {
-    const prev = past[i - 1]?.value;
-    const curr = past[i].value;
-    if (prev && curr) rets.push((curr - prev) / prev);
-  }
-  if (rets.length === 0) return 0.01;
-  const mean = rets.reduce((a, b) => a + b, 0) / rets.length;
-  const variance =
-    rets.reduce((a, b) => a + (b - mean) ** 2, 0) / rets.length;
-  return Math.max(0.001, Math.sqrt(variance));
+
+  const sigmaForWindow = (windowSize: number): number => {
+    const w = Math.min(windowSize, n - 1);
+    const rets: number[] = [];
+    for (let i = n - w; i < n; i++) {
+      const prev = past[i - 1]?.value;
+      const curr = past[i].value;
+      if (prev && curr) rets.push((curr - prev) / prev);
+    }
+    if (rets.length === 0) return 0.01;
+    const mean = rets.reduce((a, b) => a + b, 0) / rets.length;
+    const variance = rets.reduce((a, b) => a + (b - mean) ** 2, 0) / rets.length;
+    return Math.max(0.001, Math.sqrt(variance));
+  };
+
+  const recent = sigmaForWindow(60);
+  if (n <= 90) return recent;
+  const historical = sigmaForWindow(n);
+  return recent * 0.6 + historical * 0.4;
 }
 
 // 카테고리별 예측 가중 (7d / 30d / 90d 추세에 곱할 weight).
@@ -455,6 +473,7 @@ function weightsFor(slug: string): DriftWeights {
 }
 
 // 다중 기간 추세 가중 → 하루당 drift (%)
+// + 장기 평균회귀: 현재가가 MA365 대비 멀수록 되돌아오는 힘을 약하게 가산.
 function computeBlendedDrift(past: Point[], slug: string): number {
   const n = past.length;
   const last = past[n - 1].value;
@@ -467,7 +486,18 @@ function computeBlendedDrift(past: Point[], slug: string): number {
     return (totalPct / windowDays) * weight;
   };
   const { w7, w30, w90 } = weightsFor(slug);
-  return trend(7, w7) + trend(30, w30) + trend(90, w90);
+  let drift = trend(7, w7) + trend(30, w30) + trend(90, w90);
+
+  // 평균회귀: 이탈률 × 0.015 만큼 하루당 되돌림.
+  // 예) MA365 대비 +5% → 매일 -0.075% 회귀력. 극단 예측 누적 방지.
+  if (n >= 90) {
+    const lookback = Math.min(365, n);
+    const ma = past.slice(-lookback).reduce((s, p) => s + p.value, 0) / lookback;
+    const deviation = (last - ma) / ma;
+    drift -= deviation * 0.015;
+  }
+
+  return drift;
 }
 
 function round(v: number): number {

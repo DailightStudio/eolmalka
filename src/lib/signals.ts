@@ -46,8 +46,12 @@ export function computeStats(series: Series, mode: SignalMode = "default"): Seri
   const v30 = past[n - 31]?.value ?? current;
   const v365 = past[0].value;
 
-  const change7d = pct(current, v7);
-  const change30d = pct(current, v30);
+  // 30일·7일 미만이면 change 계산은 하되 신호 판정에서 제외
+  const hasEnough30d = n >= 31;
+  const hasEnough7d = n >= 8;
+
+  const change7d = hasEnough7d ? pct(current, v7) : 0;
+  const change30d = hasEnough30d ? pct(current, v30) : 0;
   const change365d = pct(current, v365);
 
   const ma30 =
@@ -61,12 +65,27 @@ export function computeStats(series: Series, mode: SignalMode = "default"): Seri
   let signal: Signal = "neutral";
   let signalText = "최근 분포의 평균 범위입니다.";
 
-  if (verdict === "great_deal") {
+  if (!hasEnough30d) {
+    // 데이터가 충분하지 않으면 분포 위치만 참고, 추세 신호는 미산출
+    if (verdict === "great_deal") {
+      signal = "buy";
+      signalText = "통계적 저점권 (데이터 누적 중, 추세 신호 미산출).";
+    } else if (verdict === "high") {
+      signal = "wait";
+      signalText = "통계적 고점권 (데이터 누적 중, 추세 신호 미산출).";
+    } else {
+      signalText = "데이터 누적 중 (30일 미만) — 통계 신호 미산출.";
+    }
+  } else if (verdict === "great_deal") {
     signal = "buy";
     signalText = "최근 1년 분포의 하위 25% — 통계적 저점권입니다.";
   } else if (verdict === "good" && change30d <= 0) {
     signal = "buy";
     signalText = "중앙값보다 저렴 + 한 달간 하락 — 매수 기회.";
+  } else if (verdict === "high" && change30d <= t.buyDropPct) {
+    // 상위 분포이지만 급락 중 — 여전히 비싸나 방향성 전환 가능
+    signal = "neutral";
+    signalText = "상위 분포이나 최근 급락 중 — 추세 전환 관망.";
   } else if (verdict === "high" && change30d >= t.highRisePct) {
     signal = "wait";
     signalText = "상위 분포 + 한 달간 상승 — 단기 관망.";
