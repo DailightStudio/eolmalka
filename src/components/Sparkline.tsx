@@ -13,6 +13,7 @@ type Props = {
   height?: number;
   stroke?: string;
   smooth?: boolean;
+  interactive?: boolean; // false면 터치 비활성 (카드 미리보기용)
 };
 
 type TooltipState = {
@@ -30,6 +31,7 @@ export function Sparkline({
   height = 80,
   stroke = "#a3e635",
   smooth = false,
+  interactive = true,
 }: Props) {
   if (past.length < 2) return null;
 
@@ -71,9 +73,13 @@ export function Sparkline({
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      // 수평 제스처만 클레임 — 세로 스크롤은 부모 ScrollView로 통과
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) >= Math.abs(g.dy),
+      // 탭(손가락 내려놓기)은 항상 클레임 — 툴팁 즉시 반응
+      onStartShouldSetPanResponder: () => interactive,
+      // 드래그는 수평일 때만 — 수직은 ScrollView로 통과
+      onMoveShouldSetPanResponder: (_, g) =>
+        interactive && Math.abs(g.dx) > Math.abs(g.dy) * 0.8,
+      // ScrollView가 스크롤 필요 시 제스처 양도 허용 → 세로 스크롤 막힘 해결
+      onPanResponderTerminationRequest: () => true,
       onPanResponderGrant: (evt) =>
         touchHandlerRef.current(evt.nativeEvent.locationX),
       onPanResponderMove: (evt) =>

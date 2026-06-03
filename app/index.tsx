@@ -351,6 +351,7 @@ function CardRow({
                 height={44}
                 stroke={s.stroke}
                 smooth
+                interactive={false}
               />
               <Text style={[styles.signalText, { color: s.stroke }]}>
                 <Text style={styles.signalLabel}>{s.label}</Text>
