@@ -1,13 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Easing, PanResponder, View } from "react-native";
-import Svg, {
-  Circle,
-  G,
-  Line,
-  Path,
-  Rect,
-  Text as SvgText,
-} from "react-native-svg";
+import { Animated, Easing, PanResponder, Text, View } from "react-native";
+import Svg, { Circle, G, Line, Path } from "react-native-svg";
 import type { Point } from "@/lib/demo-series";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -59,7 +52,7 @@ export function Sparkline({
   const xAt = (i: number) => padX + (i / (all.length - 1)) * innerW;
   const yAt = (v: number) => padY + innerH - ((v - min) / range) * innerH;
 
-  // 터치 핸들러를 ref로 관리 — PanResponder는 한 번만 생성하되 최신 값 참조
+  // 터치 핸들러 ref — PanResponder는 한 번만 생성하되 항상 최신값 참조
   const touchHandlerRef = useRef<(touchX: number) => void>(() => {});
   touchHandlerRef.current = (touchX: number) => {
     const rawIdx = Math.round(((touchX - padX) / innerW) * (all.length - 1));
@@ -141,58 +134,17 @@ export function Sparkline({
         .join(" ") + " Z";
   }
 
-  // 툴팁 렌더링
-  let tooltipElem: React.ReactNode = null;
+  // 툴팁 텍스트 준비
+  let dateLabel = "";
+  let priceLabel = "";
+  let tipLeft = 0;
+  const TIP_W = 110; // 툴팁 영역 추정 너비
   if (tooltip) {
-    const { x: tx, y: ty, point, isForecast } = tooltip;
-    // "06/03" 형식 날짜
-    const dateStr = point.date.slice(5).replace("-", "/");
-    const priceStr = fmtPrice(point.value) + (isForecast ? " (예측)" : "");
-    const label = `${dateStr}  ${priceStr}`;
-
-    // 툴팁 박스 (넓이 추정: 글자당 ~6.5px + 여백 12px)
-    const tipW = Math.min(180, Math.max(90, label.length * 6.5 + 12));
-    const tipH = 20;
-    const tipY = padY + 2;
-    const tipX = Math.max(padX, Math.min(width - padX - tipW, tx - tipW / 2));
-
-    tooltipElem = (
-      <G>
-        {/* 수직 크로스헤어 */}
-        <Line
-          x1={tx}
-          y1={padY}
-          x2={tx}
-          y2={height - padY}
-          stroke="rgba(255,255,255,0.22)"
-          strokeWidth={1}
-        />
-        {/* 툴팁 배경 */}
-        <Rect
-          x={tipX}
-          y={tipY}
-          width={tipW}
-          height={tipH}
-          fill="rgba(15,18,28,0.90)"
-          rx={4}
-        />
-        {/* 툴팁 텍스트 */}
-        <SvgText
-          x={tipX + tipW / 2}
-          y={tipY + 13.5}
-          textAnchor="middle"
-          fill="#e6eef8"
-          fontSize={10.5}
-          fontWeight="500"
-        >
-          {label}
-        </SvgText>
-        {/* 크로스헤어 교차점 마커 */}
-        <Circle cx={tx} cy={ty} r={4} fill={stroke} opacity={0.35} />
-        <Circle cx={tx} cy={ty} r={2.5} fill={stroke} />
-        <Circle cx={tx} cy={ty} r={1} fill="#fff" />
-      </G>
-    );
+    // "2025.06.03" 형식
+    dateLabel = tooltip.point.date.replace(/-/g, ".");
+    priceLabel = fmtPrice(tooltip.point.value) + (tooltip.isForecast ? " (예측)" : "");
+    // 크로스헤어 x에 맞춰 좌우 클램프
+    tipLeft = Math.max(0, Math.min(width - TIP_W, tooltip.x - TIP_W / 2));
   }
 
   return (
@@ -212,23 +164,68 @@ export function Sparkline({
             opacity={0.7}
           />
         ) : null}
-        {/* 툴팁 없을 때만 펄스 표시 */}
+
+        {/* 펄스 마커 — 툴팁 없을 때만 */}
         {!tooltip && (
           <AnimatedCircle cx={cx} cy={cy} r={pulseR} fill={stroke} opacity={pulseOpacity} />
         )}
         {!tooltip && <Circle cx={cx} cy={cy} r={2.5} fill={stroke} />}
-        {tooltipElem}
+
+        {/* 크로스헤어 + 교차점 마커 (툴팁 활성 시) */}
+        {tooltip && (
+          <G>
+            <Line
+              x1={tooltip.x}
+              y1={padY}
+              x2={tooltip.x}
+              y2={height - padY}
+              stroke="rgba(255,255,255,0.28)"
+              strokeWidth={1}
+            />
+            <Circle cx={tooltip.x} cy={tooltip.y} r={5} fill={stroke} opacity={0.25} />
+            <Circle cx={tooltip.x} cy={tooltip.y} r={3} fill={stroke} />
+            <Circle cx={tooltip.x} cy={tooltip.y} r={1.2} fill="#fff" />
+          </G>
+        )}
       </Svg>
+
+      {/* 토스 스타일 툴팁 — 차트 위에 RN Text로 렌더 (포인터 이벤트 없음) */}
+      {tooltip && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 4,
+            left: tipLeft,
+            width: TIP_W,
+          }}
+        >
+          <Text
+            style={{ color: "#6b7280", fontSize: 10.5, lineHeight: 14 }}
+            numberOfLines={1}
+          >
+            {dateLabel}
+          </Text>
+          <Text
+            style={{
+              color: "#e6eef8",
+              fontSize: 14.5,
+              fontWeight: "700",
+              lineHeight: 19,
+            }}
+            numberOfLines={1}
+          >
+            {priceLabel}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
 
-// 숫자 → 콤마 구분 문자열 (소수점 있으면 유지)
 function fmtPrice(v: number): string {
-  if (v >= 1000) return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return (Math.round(v * 100) / 100)
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const n = v >= 1000 ? Math.round(v) : Math.round(v * 100) / 100;
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 function buildPath(points: Array<[number, number]>, smooth: boolean): string {
