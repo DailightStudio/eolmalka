@@ -16,7 +16,8 @@
         "UIBackgroundModes": [
           "fetch",
           "remote-notification"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -63,8 +64,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": ""
-      }
+        "projectId": "44fe1e40-12c3-4035-be23-b53de1ee4161"
+      },
+      "router": {}
     }
   }
 }
