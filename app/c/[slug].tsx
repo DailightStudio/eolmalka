@@ -617,7 +617,10 @@ export default function CategoryScreen() {
                     신뢰도 {Math.round((news.confidence ?? 0.6) * 100)}%
                   </Text>
                 )}
-                {!news.live && (
+                {news.stale && (
+                  <Text style={styles.newsFlag}>캐시</Text>
+                )}
+                {!news.live && !news.stale && (
                   <Text style={styles.newsFlag}>키 없음</Text>
                 )}
               </View>

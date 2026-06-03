@@ -35,6 +35,7 @@ export type NewsResult = {
   items?: NewsHeadline[]; // link 포함 (구버전 캐시 호환 위해 optional)
   fetchedAt: number;
   live: boolean;         // 실 LLM 호출이었는지(키 있고 성공) / 더미인지
+  stale?: boolean;       // fetch 실패 시 만료 캐시를 반환한 경우
 };
 
 // 카테고리별 다국가·다관점 쿼리:
@@ -134,7 +135,7 @@ export async function getNewsSentiment(slug: string): Promise<NewsResult | null>
     return result;
   } catch (e) {
     console.warn("[news] failed", slug, e);
-    return cached ?? null;
+    return cached ? { ...cached, stale: true } : null;
   }
 }
 

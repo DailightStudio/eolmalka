@@ -71,7 +71,8 @@ export function Sparkline({
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      // 탭(짧은 터치)은 부모 Pressable/Link로 통과, 드래그만 클레임
+      onStartShouldSetPanResponder: () => false,
       // 수평 제스처만 클레임 — 세로 스크롤은 부모 ScrollView로 통과
       onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) >= Math.abs(g.dy),
       onPanResponderGrant: (evt) =>
@@ -196,6 +197,38 @@ export function Sparkline({
           </G>
         )}
       </Svg>
+
+      {/* Y축 최고·최저 라벨 — 툴팁 없을 때, 큰 차트에만 */}
+      {!tooltip && height > 60 && (
+        <>
+          <Text
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: VPAD + 2,
+              right: 4,
+              color: "#4b5563",
+              fontSize: 9,
+              lineHeight: 12,
+            }}
+          >
+            {fmtPrice(max)}
+          </Text>
+          <Text
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              bottom: VPAD + 2,
+              right: 4,
+              color: "#4b5563",
+              fontSize: 9,
+              lineHeight: 12,
+            }}
+          >
+            {fmtPrice(min)}
+          </Text>
+        </>
+      )}
 
       {/* 토스 스타일 툴팁 — 차트 위에 RN Text로 렌더 (포인터 이벤트 없음) */}
       {tooltip && (
