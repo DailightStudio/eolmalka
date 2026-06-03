@@ -22,8 +22,9 @@ export type NewsSentiment = "bullish" | "bearish" | "neutral";
 export type NewsHeadline = {
   title: string;
   link?: string;
-  source?: string;      // 뉴스 매체 이름 (예: "한국경제", "Reuters")
-  locale?: "ko" | "en"; // 국내/해외 구분
+  source?: string;       // 뉴스 매체 이름 (예: "한국경제", "Reuters")
+  locale?: "ko" | "en";  // 국내/해외 구분
+  description?: string;  // RSS <description> 첫 문장 요약 (감성 분석 정확도 향상용)
 };
 
 export type NewsResult = {
@@ -155,6 +156,7 @@ async function fetchHeadlines(
   const titleRe = /<title>(?:<!\[CDATA\[)?([^<\]]+?)(?:\]\]>)?<\/title>/;
   const linkRe = /<link>([^<]+)<\/link>/;
   const srcRe = /<source[^>]*>([^<]+)<\/source>/;
+  const descRe = /<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/;
   let m: RegExpExecArray | null;
   while ((m = itemRe.exec(xml)) !== null) {
     const tm = titleRe.exec(m[1]);
@@ -165,10 +167,18 @@ async function fetchHeadlines(
     const link = lm ? lm[1].trim() : undefined;
     const sm = srcRe.exec(m[1]);
     const source = sm ? decodeEntities(sm[1].trim()) : undefined;
-    items.push({ title, link, source, locale });
+    const dm = descRe.exec(m[1]);
+    const description = dm
+      ? decodeEntities(stripHtml(dm[1])).slice(0, 120) || undefined
+      : undefined;
+    items.push({ title, link, source, locale, description });
     if (items.length >= 10) break;
   }
   return items;
+}
+
+function stripHtml(s: string): string {
+  return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function decodeEntities(s: string): string {
@@ -186,10 +196,16 @@ async function classifyWithLLM(
   items: NewsHeadline[],
 ): Promise<NewsResult> {
   const titles = items.map((x) => x.title);
-  const prompt = `다음은 "${category}"에 대한 최근 한국·해외 뉴스 헤드라인입니다(한국어/영어 혼합). 한국 사용자가 사거나(또는 보유) 입장에서 가격이 오를 압력(bullish) / 내릴 압력(bearish) / 중립(neutral) 중 하나를 고르고, confidence(0.0~1.0)와 함께 핵심 흐름을 50자 이내 한국어로 요약하세요. confidence 기준: 헤드라인 다수가 같은 방향이고 강한 시그널이면 0.8+, 혼재·모호하면 0.3~0.5, 거의 무관하면 0.1 미만.
+  const newsLines = items
+    .map((x, i) => {
+      const desc = x.description ? ` — ${x.description}` : "";
+      return `${i + 1}. ${x.title}${desc}`;
+    })
+    .join("\n");
+  const prompt = `다음은 "${category}"에 대한 최근 한국·해외 뉴스입니다(한국어/영어 혼합). 제목과 요약을 함께 읽고, 한국 사용자가 사거나(또는 보유) 입장에서 가격이 오를 압력(bullish) / 내릴 압력(bearish) / 중립(neutral) 중 하나를 고르고, confidence(0.0~1.0)와 함께 핵심 흐름을 50자 이내 한국어로 요약하세요. confidence 기준: 기사 다수가 같은 방향이고 강한 시그널이면 0.8+, 혼재·모호하면 0.3~0.5, 거의 무관하면 0.1 미만.
 
-헤드라인:
-${titles.map((h, i) => `${i + 1}. ${h}`).join("\n")}
+뉴스:
+${newsLines}
 
 JSON만 출력: {"sentiment":"bullish|bearish|neutral","confidence":0.0~1.0,"summary":"..."}`;
 
@@ -276,7 +292,9 @@ async function classifyViaProxy(
   category: string,
   items: NewsHeadline[],
 ): Promise<NewsResult> {
-  const titles = items.map((x) => x.title);
+  const titles = items.map((x) =>
+    x.description ? `${x.title} — ${x.description}` : x.title,
+  );
   const res = await fetch(PROXY_URL!, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
