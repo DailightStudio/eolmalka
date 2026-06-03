@@ -366,8 +366,6 @@ export type CategoryMeta = {
 const CATEGORY_BASE: Record<string, { emoji: string; unitKey: string }> = {
   "fx-usd":     { emoji: "💵", unitKey: "cat.unit.krw" },
   "fx-jpy":     { emoji: "💴", unitKey: "cat.unit.krw" },
-  "fx-eur":     { emoji: "💶", unitKey: "cat.unit.krw" },
-  "fx-cny":     { emoji: "💴", unitKey: "cat.unit.krw" },
   "gas-petrol": { emoji: "⛽", unitKey: "cat.unit.perL" },
   "gold-kr":    { emoji: "🪙", unitKey: "cat.unit.perG" },
   "air-nrt":    { emoji: "✈️", unitKey: "cat.unit.krw" },
@@ -383,6 +381,8 @@ export const ADDABLE_CURRENCIES: Array<{
   korean: string;
   emoji: string;
 }> = [
+  { code: "EUR", korean: "유로", emoji: "💶" },
+  { code: "CNY", korean: "위안", emoji: "💴" },
   { code: "GBP", korean: "파운드", emoji: "💷" },
   { code: "AUD", korean: "호주달러", emoji: "💵" },
   { code: "NZD", korean: "뉴질랜드달러", emoji: "💵" },

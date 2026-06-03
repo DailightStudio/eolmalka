@@ -244,14 +244,6 @@ export default function CategoryScreen() {
             <Text style={styles.name}>{meta.name}</Text>
             <Text style={styles.sub}>{meta.subtitle}</Text>
           </View>
-          <Text
-            style={[
-              styles.sourceTag,
-              { color: series.source === "live" ? "#a3e635" : "#71717a" },
-            ]}
-          >
-            {series.source === "live" ? `LIVE · ${series.sourceName}` : "DEMO"}
-          </Text>
         </View>
 
         <View style={styles.priceBlock}>
@@ -270,9 +262,7 @@ export default function CategoryScreen() {
               {stats.change30d}%
             </Text>
           </View>
-          <Text style={styles.muted}>
-            {series.source === "live" ? "현재가 (실데이터)" : "현재가 (데모)"}
-          </Text>
+          <Text style={styles.muted}>현재가</Text>
         </View>
 
         <View
@@ -688,9 +678,6 @@ export default function CategoryScreen() {
                     ))}
                 </View>
               )}
-              <Text style={styles.tinyMuted}>
-                출처: Google News · 분석: Gemini 2.5 Flash (1시간 캐싱)
-              </Text>
             </>
           ) : (
             <Text style={styles.muted}>뉴스를 가져오지 못했습니다.</Text>
@@ -731,13 +718,7 @@ export default function CategoryScreen() {
         </View>
 
         <Text style={styles.footnote}>
-          ※{" "}
-          {series.source === "live"
-            ? series.pastIsLive
-              ? `데이터 출처: ${series.sourceName} (시계열·현재가 모두 실데이터).`
-              : `데이터 출처: ${series.sourceName} (현재가는 실데이터, 1년 시계열은 그 현재가에 비례 스케일한 합성).`
-            : "데모 화면 — 실데이터 미연결."}{" "}
-          통계 신호는 참고용이며 투자 자문이 아닙니다.
+          통계 신호는 참고용이며 투자 자문이 아닙니다.{"\n"}© JayLabs
         </Text>
       </ScrollView>
     </>

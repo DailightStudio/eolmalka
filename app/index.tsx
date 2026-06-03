@@ -155,8 +155,6 @@ export default function HomeScreen() {
     return list.map((x) => x.c);
   }, [cards, favs, sort]);
 
-  const anyLive = cards.some((c) => c.series.source === "live");
-
   return (
     <FlatList
       style={styles.container}
@@ -174,9 +172,6 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.headerRow}>
             <Text style={styles.brand}>{t("home.brand")}</Text>
-            <Text style={[styles.liveBadge, !anyLive && styles.dimmed]}>
-              {anyLive ? t("badge.live") : t("badge.dummy")}
-            </Text>
           </View>
           <Text style={styles.title}>{t("home.title")}</Text>
           <Text style={styles.subtitle}>{t("home.subtitle")}</Text>
@@ -269,10 +264,7 @@ export default function HomeScreen() {
               <Text style={styles.addBtnText}>{t("home.add")}</Text>
             </Pressable>
           </Link>
-          <Text style={styles.footnote}>
-            ※ 환율은 Frankfurter(ECB), 휘발유는 오피넷, 나머지는 데모. 통계
-            신호는 참고용입니다.
-          </Text>
+          <Text style={styles.footnote}>© JayLabs</Text>
         </View>
       }
     />
@@ -315,9 +307,6 @@ function CardRow({
             <View style={{ flex: 1 }}>
               <View style={styles.row}>
                 <Text style={styles.name}>{meta.name}</Text>
-                {series.source === "live" && (
-                  <Text style={styles.liveTag}>LIVE</Text>
-                )}
                 {nextEvent && (
                   <View
                     style={[

@@ -14,9 +14,12 @@ import {
   removeUserCategory,
 } from "@/lib/storage";
 
+type Tab = "currency" | "flight";
+
 export default function AddCategoryScreen() {
   const router = useRouter();
   const [user, setUser] = useState<string[]>([]);
+  const [tab, setTab] = useState<Tab>("currency");
 
   useEffect(() => {
     void (async () => setUser(await loadUserCategories()))();
@@ -35,9 +38,8 @@ export default function AddCategoryScreen() {
     [user],
   );
 
-  const totalSelected =
-    ADDABLE_CURRENCIES.filter((c) => user.includes(c.code)).length +
-    ADDABLE_FLIGHTS.filter((f) => user.includes(f.slug)).length;
+  const currencySelected = ADDABLE_CURRENCIES.filter((c) => user.includes(c.code)).length;
+  const flightSelected = ADDABLE_FLIGHTS.filter((f) => user.includes(f.slug)).length;
 
   return (
     <>
@@ -52,92 +54,92 @@ export default function AddCategoryScreen() {
           ),
         }}
       />
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-        {totalSelected > 0 && (
-          <View style={styles.countRow}>
-            <Text style={styles.countTag}>{totalSelected}개 선택됨</Text>
-          </View>
-        )}
-
-        {/* ─── 통화 섹션 ─── */}
-        <Text style={styles.sectionHeader}>통화</Text>
-        <Text style={styles.sectionNote}>Frankfurter (ECB) 실시간</Text>
-        {ADDABLE_CURRENCIES.map((item) => {
-          const active = user.includes(item.code);
-          return (
+      <View style={styles.container}>
+        {/* 탭 바 */}
+        <View style={styles.tabBar}>
+          {([
+            { key: "currency", label: "통화", count: currencySelected },
+            { key: "flight",   label: "항공권", count: flightSelected },
+          ] as { key: Tab; label: string; count: number }[]).map(({ key, label, count }) => (
             <Pressable
-              key={item.code}
-              style={[styles.row, active && styles.rowActive]}
-              onPress={() => toggle(item.code)}
+              key={key}
+              style={[styles.tab, tab === key && styles.tabActive]}
+              onPress={() => setTab(key)}
             >
-              <Text style={styles.emoji}>{item.emoji}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.name}>{item.korean}</Text>
-                <Text style={styles.sub}>{item.code}/KRW</Text>
-              </View>
-              <View style={[styles.check, active && styles.checkActive]}>
-                {active && <Text style={styles.checkMark}>✓</Text>}
-              </View>
+              <Text style={[styles.tabText, tab === key && styles.tabTextActive]}>
+                {label}
+                {count > 0 ? ` ${count}` : ""}
+              </Text>
             </Pressable>
-          );
-        })}
+          ))}
+        </View>
 
-        {/* ─── 항공권 섹션 ─── */}
-        <Text style={[styles.sectionHeader, { marginTop: 24 }]}>항공권</Text>
-        <Text style={styles.sectionNote}>Travelpayouts 이달 최저가 중앙값 (인천 출발)</Text>
-        {ADDABLE_FLIGHTS.map((item) => {
-          const active = user.includes(item.slug);
-          return (
-            <Pressable
-              key={item.slug}
-              style={[styles.row, active && styles.rowActive]}
-              onPress={() => toggle(item.slug)}
-            >
-              <Text style={styles.emoji}>{item.emoji}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.name}>{item.korean}</Text>
-                <Text style={styles.sub}>{item.destination} 왕복</Text>
-              </View>
-              <View style={[styles.check, active && styles.checkActive]}>
-                {active && <Text style={styles.checkMark}>✓</Text>}
-              </View>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+          {tab === "currency" &&
+            ADDABLE_CURRENCIES.map((item) => {
+              const active = user.includes(item.code);
+              return (
+                <Pressable
+                  key={item.code}
+                  style={[styles.row, active && styles.rowActive]}
+                  onPress={() => toggle(item.code)}
+                >
+                  <Text style={styles.emoji}>{item.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.name}>{item.korean}</Text>
+                    <Text style={styles.sub}>{item.code}/KRW</Text>
+                  </View>
+                  <View style={[styles.check, active && styles.checkActive]}>
+                    {active && <Text style={styles.checkMark}>✓</Text>}
+                  </View>
+                </Pressable>
+              );
+            })}
+
+          {tab === "flight" &&
+            ADDABLE_FLIGHTS.map((item) => {
+              const active = user.includes(item.slug);
+              return (
+                <Pressable
+                  key={item.slug}
+                  style={[styles.row, active && styles.rowActive]}
+                  onPress={() => toggle(item.slug)}
+                >
+                  <Text style={styles.emoji}>{item.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.name}>{item.korean}</Text>
+                    <Text style={styles.sub}>{item.destination} 왕복</Text>
+                  </View>
+                  <View style={[styles.check, active && styles.checkActive]}>
+                    {active && <Text style={styles.checkMark}>✓</Text>}
+                  </View>
+                </Pressable>
+              );
+            })}
+        </ScrollView>
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0f17", paddingHorizontal: 16 },
-  countRow: {
-    alignItems: "flex-end",
-    paddingTop: 12,
-    marginBottom: 4,
+  container: { flex: 1, backgroundColor: "#0b0f17" },
+  tabBar: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#27272a",
   },
-  countTag: {
-    color: "#a3e635",
-    fontSize: 11,
-    fontWeight: "800",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(132,204,22,0.4)",
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
   },
-  sectionHeader: {
-    color: "#fafafa",
-    fontSize: 14,
-    fontWeight: "700",
-    marginTop: 20,
-    marginBottom: 2,
+  tabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: "#a3e635",
   },
-  sectionNote: {
-    color: "#52525b",
-    fontSize: 11,
-    marginBottom: 10,
-  },
+  tabText: { color: "#71717a", fontSize: 14, fontWeight: "600" },
+  tabTextActive: { color: "#a3e635" },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -148,6 +150,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#27272a",
     marginBottom: 8,
+    marginHorizontal: 16,
+    marginTop: 8,
     backgroundColor: "#18181b",
   },
   rowActive: { borderColor: "#a3e635", backgroundColor: "rgba(132,204,22,0.08)" },
