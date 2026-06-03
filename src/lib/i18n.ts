@@ -16,7 +16,9 @@ function detectLocale(): Locale {
   return "ko";
 }
 
-export const LOCALE = detectLocale();
+// 현재 앱은 한국어 전용. 폰 언어 감지는 일관성을 위해 비활성화.
+// 향후 언어 설정 UI 추가 시 detectLocale() 또는 저장된 설정으로 교체.
+export const LOCALE: Locale = "ko";
 
 // 키 네임: 화면.섹션.용도 (점 구분)
 const MESSAGES: Record<Locale, Record<string, string>> = {

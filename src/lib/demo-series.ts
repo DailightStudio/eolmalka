@@ -151,7 +151,8 @@ async function getSeriesRaw(slug: string): Promise<Series> {
       }));
       // 합성으로 휴장일·갭 채우기
       const scaledSyn = scaleToCurrent(synPast, latest.price);
-      const { merged, liveDays } = mergeWithDaily(scaledSyn, scaledKrx);
+      const { merged: mergedRaw, liveDays } = mergeWithDaily(scaledSyn, scaledKrx);
+      const merged = smoothPoints(mergedRaw, 7);
       const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
       return {
         slug,
@@ -196,10 +197,11 @@ async function getSeriesRaw(slug: string): Promise<Series> {
       // 단, 마지막 점은 실 종가 그대로 — 표시 현재가가 MA로 흐려지지 않게.
       const smoothed = movingAverage(krx.map((p) => p.close), 7);
       const lastIdx = krx.length - 1;
-      const past: Point[] = krx.map((p, i) => ({
+      const rawPast: Point[] = krx.map((p, i) => ({
         date: p.date,
         value: round(i === lastIdx ? p.close : smoothed[i]),
       }));
+      const past = smoothPoints(rawPast, 7);
       // 합성 메꿈 제거: KRX 영업일만으로 충분. 휴장일은 sparkline에서 X축이 등간격이라
       // 시각적으로 차이 없음. pastIsLive=true가 라벨도 정확.
       const forecast = projectForecast(past, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
@@ -472,6 +474,15 @@ function round(v: number): number {
   if (v >= 10000) return Math.round(v);
   if (v >= 1000) return Math.round(v);
   return Math.round(v * 100) / 100;
+}
+
+// merge 후 전체 시계열 스무딩 (마지막 점=실 현재가 보존)
+function smoothPoints(points: Point[], window = 7): Point[] {
+  if (points.length <= window) return points;
+  const smoothed = movingAverage(points.map((p) => p.value), window);
+  return points.map((p, i) =>
+    i === points.length - 1 ? p : { ...p, value: round(smoothed[i]) },
+  );
 }
 
 // 중심 이동평균 (window=홀수 권장). 양쪽 가장자리는 가능한 만큼 부분 평균.
