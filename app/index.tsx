@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Link, useFocusEffect } from "expo-router";
 import { AdBanner } from "@/components/AdBanner";
+import { showInterstitialOnce } from "@/lib/ad-manager";
 import { Sparkline } from "@/components/Sparkline";
 import { iconSourceFor } from "@/lib/icon-sources";
 import { getSeries, type Series } from "@/lib/demo-series";
@@ -87,6 +88,9 @@ export default function HomeScreen() {
       setErrors([String(e).slice(0, 120)]);
     } finally {
       setLoading(false);
+      // 데이터 로딩 완료 시 전면 광고 1회 (포커스 복귀·새로고침 재호출은
+      // showInterstitialOnce 내부에서 세션당 1회 보장하므로 안전)
+      showInterstitialOnce();
     }
   }, []);
 

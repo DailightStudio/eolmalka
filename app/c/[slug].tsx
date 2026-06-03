@@ -15,6 +15,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import { AdBanner } from "@/components/AdBanner";
+import { showRewardedAd } from "@/lib/ad-manager";
 import { Sparkline } from "@/components/Sparkline";
 import { backtestForecast, getSeries, type Series } from "@/lib/demo-series";
 import {
@@ -146,6 +147,38 @@ export default function CategoryScreen() {
         "목표가 도달 시 알림을 받으려면 알림 권한을 허용해주세요. 설정 → 얼말까에서 변경 가능합니다.",
       );
       return;
+    }
+    // 이미 설정된 알림이 1개 이상이면 보상형 광고 시청 필요
+    const existingTargets = await loadTargets();
+    const hasOtherTargets =
+      Object.keys(existingTargets).filter((k) => k !== slug).length > 0;
+    if (hasOtherTargets) {
+      Alert.alert(
+        "광고 시청 후 설정",
+        "추가 알림은 짧은 광고 시청 후 설정할 수 있습니다.",
+        [
+          { text: "취소", style: "cancel" },
+          {
+            text: "광고 보기",
+            onPress: async () => {
+              const earned = await showRewardedAd();
+              if (!earned) {
+                Alert.alert("광고를 끝까지 시청해야 합니다.");
+                return;
+              }
+              await setTarget(slug, num);
+              setTargetState(num);
+              await scheduleLocalAlert({
+                title: `${meta.name} 알림 설정됨`,
+                body: `${num.toLocaleString()}${meta.unit} 이하일 때 알려드릴게요.`,
+                data: { slug },
+                kind: "system",
+              });
+            },
+          },
+        ],
+      );
+      return; // Alert이 비동기로 처리하므로 여기서 return
     }
     await setTarget(slug, num);
     setTargetState(num);
