@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0b0f17"/>
+      <stop offset="100%" style="stop-color:#141b2d"/>
+    </linearGradient>
+    <linearGradient id="chartGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#a3e635;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#a3e635;stop-opacity:0"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e2738"/>
+      <stop offset="100%" style="stop-color:#161d2e"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="500" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines -->
+  <g opacity="0.04" stroke="#a3e635" stroke-width="1">
+    <line x1="0" y1="100" x2="1024" y2="100"/>
+    <line x1="0" y1="200" x2="1024" y2="200"/>
+    <line x1="0" y1="300" x2="1024" y2="300"/>
+    <line x1="0" y1="400" x2="1024" y2="400"/>
+    <line x1="200" y1="0" x2="200" y2="500"/>
+    <line x1="400" y1="0" x2="400" y2="500"/>
+    <line x1="600" y1="0" x2="600" y2="500"/>
+    <line x1="800" y1="0" x2="800" y2="500"/>
+  </g>
+
+  <!-- Left side: App name + tagline -->
+  <!-- App name -->
+  <text x="72" y="190" font-family="'Arial Black', 'Noto Sans KR', sans-serif" font-size="88" font-weight="900" fill="#a3e635" filter="url(#softglow)">얼말까</text>
+
+  <!-- Tagline -->
+  <text x="76" y="248" font-family="'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif" font-size="26" font-weight="400" fill="#94a3b8" letter-spacing="1">지금이 살 타이밍인지, 통계가 말해줍니다</text>
+
+  <!-- Category icons row -->
+  <g transform="translate(76, 290)">
+    <!-- USD -->
+    <rect x="0" y="0" width="108" height="44" rx="10" fill="#1e2738"/>
+    <text x="14" y="29" font-size="22">💵</text>
+    <text x="44" y="28" font-family="sans-serif" font-size="15" font-weight="600" fill="#e2e8f0">환율</text>
+
+    <!-- Gas -->
+    <rect x="120" y="0" width="108" height="44" rx="10" fill="#1e2738"/>
+    <text x="134" y="29" font-size="22">⛽</text>
+    <text x="164" y="28" font-family="sans-serif" font-size="15" font-weight="600" fill="#e2e8f0">기름값</text>
+
+    <!-- Flight -->
+    <rect x="240" y="0" width="108" height="44" rx="10" fill="#1e2738"/>
+    <text x="254" y="29" font-size="22">✈️</text>
+    <text x="284" y="28" font-family="sans-serif" font-size="15" font-weight="600" fill="#e2e8f0">항공권</text>
+
+    <!-- Gold -->
+    <rect x="360" y="0" width="108" height="44" rx="10" fill="#1e2738"/>
+    <text x="374" y="29" font-size="22">🪙</text>
+    <text x="404" y="28" font-family="sans-serif" font-size="15" font-weight="600" fill="#e2e8f0">금</text>
+  </g>
+
+  <!-- Right side: Phone mockup area -->
+  <!-- Phone frame -->
+  <rect x="648" y="32" width="280" height="436" rx="32" fill="#1a2235" stroke="#2d3a52" stroke-width="2"/>
+  <!-- Phone screen -->
+  <rect x="660" y="52" width="256" height="396" rx="20" fill="#0d1221"/>
+  <!-- Phone notch -->
+  <rect x="744" y="52" width="88" height="24" rx="12" fill="#1a2235"/>
+
+  <!-- App UI on screen -->
+  <!-- Header -->
+  <rect x="660" y="52" width="256" height="52" rx="0" fill="#111827"/>
+  <rect x="660" y="52" width="256" height="52" rx="20" fill="#111827"/>
+  <rect x="660" y="80" width="256" height="24" fill="#111827"/>
+  <text x="680" y="88" font-family="sans-serif" font-size="17" font-weight="700" fill="#f1f5f9">얼말까</text>
+
+  <!-- Signal mode chips -->
+  <rect x="680" y="112" width="60" height="22" rx="11" fill="#a3e635" opacity="0.15"/>
+  <text x="710" y="127" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#a3e635">보수적</text>
+  <rect x="748" y="112" width="60" height="22" rx="11" fill="#1e2d40"/>
+  <text x="778" y="127" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#64748b">기본</text>
+  <rect x="816" y="112" width="55" height="22" rx="11" fill="#1e2d40"/>
+  <text x="843" y="127" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#64748b">공격적</text>
+
+  <!-- Card 1: USD -->
+  <rect x="668" y="144" width="240" height="76" rx="14" fill="url(#cardGrad)" stroke="#1e2d40" stroke-width="1"/>
+  <text x="682" y="163" font-size="16">💵</text>
+  <text x="704" y="164" font-family="sans-serif" font-size="13" font-weight="600" fill="#e2e8f0">달러/원</text>
+  <text x="682" y="184" font-family="sans-serif" font-size="19" font-weight="700" fill="#f1f5f9">1,378</text>
+  <text x="722" y="184" font-family="sans-serif" font-size="11" fill="#94a3b8">원</text>
+  <!-- Buy signal badge -->
+  <rect x="856" y="152" width="42" height="20" rx="10" fill="#a3e635" opacity="0.2"/>
+  <text x="877" y="166" text-anchor="middle" font-family="sans-serif" font-size="9" font-weight="700" fill="#a3e635">매수</text>
+  <!-- Sparkline -->
+  <polyline points="682,208 695,204 708,206 721,200 734,203 747,198 760,201 773,196 786,199 799,194 812,197 825,192" fill="none" stroke="#a3e635" stroke-width="1.5" opacity="0.8"/>
+  <text x="682" y="212" font-family="sans-serif" font-size="9" fill="#64748b">▼ 0.3%</text>
+
+  <!-- Card 2: Gas -->
+  <rect x="668" y="228" width="240" height="76" rx="14" fill="url(#cardGrad)" stroke="#1e2d40" stroke-width="1"/>
+  <text x="682" y="247" font-size="16">⛽</text>
+  <text x="704" y="248" font-family="sans-serif" font-size="13" font-weight="600" fill="#e2e8f0">휘발유</text>
+  <text x="682" y="268" font-family="sans-serif" font-size="19" font-weight="700" fill="#f1f5f9">1,624</text>
+  <text x="722" y="268" font-family="sans-serif" font-size="11" fill="#94a3b8">원/L</text>
+  <!-- Wait signal badge -->
+  <rect x="852" y="236" width="46" height="20" rx="10" fill="#f97316" opacity="0.2"/>
+  <text x="875" y="250" text-anchor="middle" font-family="sans-serif" font-size="9" font-weight="700" fill="#f97316">대기</text>
+  <!-- Sparkline -->
+  <polyline points="682,292 695,290 708,294 721,296 734,293 747,297 760,299 773,296 786,300 799,298 812,302 825,299" fill="none" stroke="#f97316" stroke-width="1.5" opacity="0.8"/>
+
+  <!-- Card 3: Flight -->
+  <rect x="668" y="312" width="240" height="76" rx="14" fill="url(#cardGrad)" stroke="#1e2d40" stroke-width="1"/>
+  <text x="682" y="331" font-size="16">✈️</text>
+  <text x="704" y="332" font-family="sans-serif" font-size="13" font-weight="600" fill="#e2e8f0">인천→오사카</text>
+  <text x="682" y="352" font-family="sans-serif" font-size="19" font-weight="700" fill="#f1f5f9">182,000</text>
+  <text x="746" y="352" font-family="sans-serif" font-size="11" fill="#94a3b8">원</text>
+  <!-- Great deal badge -->
+  <rect x="843" y="320" width="55" height="20" rx="10" fill="#a3e635" opacity="0.2"/>
+  <text x="870" y="334" text-anchor="middle" font-family="sans-serif" font-size="8" font-weight="700" fill="#a3e635">최저가↓</text>
+  <!-- Sparkline -->
+  <polyline points="682,376 695,373 708,370 721,374 734,368 747,365 760,362 773,366 786,360 799,357 812,361 825,355" fill="none" stroke="#a3e635" stroke-width="1.5" opacity="0.8"/>
+
+  <!-- Bottom bar of phone -->
+  <rect x="660" y="420" width="256" height="28" rx="0" fill="#0d1221"/>
+  <rect x="660" y="420" width="256" height="28" rx="0" fill="#111827" opacity="0.5"/>
+  <rect x="756" y="432" width="48" height="4" rx="2" fill="#374151"/>
+
+  <!-- Glowing accent dot top-left -->
+  <circle cx="80" cy="80" r="120" fill="#a3e635" opacity="0.03"/>
+
+  <!-- Bottom left: badge-like indicators -->
+  <g transform="translate(76, 370)">
+    <rect x="0" y="0" width="180" height="36" rx="10" fill="#1a2535" stroke="#1e2d40" stroke-width="1"/>
+    <text x="14" y="23" font-size="18">🔔</text>
+    <text x="40" y="22" font-family="sans-serif" font-size="13" fill="#94a3b8">목표가 달성 알림</text>
+  </g>
+  <g transform="translate(76, 414)">
+    <rect x="0" y="0" width="180" height="36" rx="10" fill="#1a2535" stroke="#1e2d40" stroke-width="1"/>
+    <text x="14" y="23" font-size="18">📈</text>
+    <text x="40" y="22" font-family="sans-serif" font-size="13" fill="#94a3b8">90일 예측 차트</text>
+  </g>
+
+  <!-- Version / disclaimer text -->
+  <text x="512" y="490" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#2d3a52">통계 기반 참고 신호 · 투자 자문 아님</text>
+</svg>

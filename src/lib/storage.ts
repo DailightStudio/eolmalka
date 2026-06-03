@@ -6,6 +6,7 @@ const TARGETS = "eolmalka:targets:v1";
 const NOTIFY_LOG = "eolmalka:notifylog:v1";
 const USER_CATS = "eolmalka:userCats:v1";
 const SIGNAL_MODE = "eolmalka:signalMode:v1";
+const DEVICE_ID = "eolmalka:device_id:v1";
 
 export type SortMode = "default" | "signal" | "change";
 export type SignalMode = "conservative" | "default" | "aggressive";
@@ -174,4 +175,26 @@ export async function saveOnboardingDone(): Promise<void> {
   try {
     await AsyncStorage.setItem(ONBOARDING_DONE, "1");
   } catch {}
+}
+
+// ── 기기 식별자 (서버 푸시 토큰/알림 매핑용) ─────────────
+// 백엔드 push_tokens / price_alerts 의 device_id. 최초 1회 생성 후 영구 보관.
+function uuidv4(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export async function getDeviceId(): Promise<string> {
+  try {
+    const existing = await AsyncStorage.getItem(DEVICE_ID);
+    if (existing) return existing;
+  } catch {}
+  const id = uuidv4();
+  try {
+    await AsyncStorage.setItem(DEVICE_ID, id);
+  } catch {}
+  return id;
 }

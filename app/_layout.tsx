@@ -5,7 +5,10 @@ import { AppState, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { initAppOpenAd, preloadInterstitial, showAppOpenAd } from "@/lib/ad-manager";
 import { registerBackgroundCheck } from "@/lib/background-check";
+import { initFirebase } from "@/lib/firebase";
 import { setupNotifications } from "@/lib/notifications";
+import { registerPushToken } from "@/lib/push-registration";
+import { maybeRequestReview } from "@/lib/review";
 import { loadOnboardingDone } from "@/lib/storage";
 
 async function setupAds() {
@@ -34,9 +37,14 @@ export default function RootLayout() {
       const done = await loadOnboardingDone();
       if (!done) router.replace("/onboarding");
     })();
-    void setupNotifications();
+    void initFirebase();
+    // 알림 채널/권한 셋업 후 서버 푸시 토큰 등록 (이미 허용된 경우에만 등록됨)
+    void setupNotifications().finally(() => {
+      void registerPushToken();
+    });
     void registerBackgroundCheck();
     void setupAds();
+    void maybeRequestReview();
 
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") showAppOpenAd();

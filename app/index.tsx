@@ -13,6 +13,8 @@ import { AdBanner } from "@/components/AdBanner";
 import { NativeAdCard } from "@/components/NativeAdCard";
 import { Sparkline } from "@/components/Sparkline";
 import { iconSourceFor } from "@/lib/icon-sources";
+import { freshnessLabel } from "@/lib/cache";
+import { logScreen } from "@/lib/firebase";
 import { getSeries, type Series } from "@/lib/demo-series";
 import {
   SIGNAL_STYLE,
@@ -113,6 +115,7 @@ export default function HomeScreen() {
   // 모달 닫힘 시 갱신 (마운트 중복 호출은 cachedFetch가 dedup)
   useFocusEffect(
     useCallback(() => {
+      void logScreen("home");
       void load();
     }, [load]),
   );
@@ -322,6 +325,8 @@ function CardRow({
   const positive = stats.change30d > 0;
   const evHigh = nextEvent?.importance === "high";
   const iconSrc = iconSourceFor(slug);
+  // 데이터 신선도 — 오프라인 캐시 fallback이면 source가 "synthetic"이지만 fetchedAt이 남아있음.
+  const freshness = freshnessLabel(series.fetchedAt, series.source !== "live");
   return (
     <View style={[styles.card, { borderColor: s.border, backgroundColor: s.bg }]}>
       <Pressable
@@ -394,6 +399,16 @@ function CardRow({
                 <Text style={styles.signalLabel}>{s.label}</Text>
                 <Text style={styles.signalSub}> {stats.signalText}</Text>
               </Text>
+              {freshness && (
+                <Text
+                  style={[
+                    styles.freshness,
+                    { color: freshness.offline ? "#fb923c" : "#52525b" },
+                  ]}
+                >
+                  {freshness.text}
+                </Text>
+              )}
             </View>
           </View>
         </Pressable>
@@ -504,6 +519,7 @@ const styles = StyleSheet.create({
   signalText: { marginTop: 4, fontSize: 12 },
   signalLabel: { fontWeight: "700" },
   signalSub: { color: "#a1a1aa" },
+  freshness: { fontSize: 10, fontWeight: "700", marginTop: 3 },
   footnote: {
     color: "#6b7280",
     fontSize: 10,

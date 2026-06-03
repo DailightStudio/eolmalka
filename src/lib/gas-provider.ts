@@ -3,6 +3,7 @@
 // 응답 형식: { RESULT: { OIL: [{ TRADE_DT, PRODCD, PRODNM, PRICE }, ...] } }
 // PRODCD: B027=휘발유, D047=경유, B034=고급휘발유, C004=자동차용부탄(LPG), K015=실내등유
 
+import { getCachedEnvelope, setCached } from "./cache";
 import { cachedFetch } from "./fetch-cache";
 
 // Expo: process.env.EXPO_PUBLIC_* 만 클라이언트 번들에 박힌다.
@@ -16,6 +17,7 @@ export type GasLatest = {
   price: number;     // 원/L
   tradeDate: string; // YYYYMMDD
   live: boolean;
+  fetchedAt?: number; // 실데이터 fetch 성공 시각(ms). 오프라인 fallback이면 캐시 기록 시각.
 };
 
 type OpinetRow = {
@@ -36,6 +38,7 @@ export function getGasLatest(product: GasProduct = "B027"): Promise<GasLatest> {
 
 async function fetchGasLatestUncached(product: GasProduct): Promise<GasLatest> {
   if (!KEY) return synthetic(product);
+  const cacheKey = `cache:gas:${product}`;
   try {
     const url = `${BASE}/avgRecentPrice.do?code=${KEY}&out=json`;
     const res = await fetch(url);
@@ -46,13 +49,19 @@ async function fetchGasLatestUncached(product: GasProduct): Promise<GasLatest> {
     if (!row || row.PRICE === undefined) throw new Error("no row");
     const price = Number(row.PRICE);
     if (!Number.isFinite(price) || price <= 0) throw new Error("bad price");
-    return {
+    const result: GasLatest = {
       product,
       price: Math.round(price * 100) / 100,
       tradeDate: row.TRADE_DT ?? today(),
       live: true,
+      fetchedAt: Date.now(),
     };
+    await setCached(cacheKey, result);
+    return result;
   } catch {
+    // 네트워크 실패 시 마지막 성공 데이터(영구 캐시) 사용.
+    const cached = await getCachedEnvelope<GasLatest>(cacheKey);
+    if (cached) return { ...cached.data, live: false, fetchedAt: cached.ts };
     return synthetic(product);
   }
 }

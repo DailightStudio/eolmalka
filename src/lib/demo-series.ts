@@ -35,6 +35,9 @@ export type Series = {
     | "synthetic";
   pastIsLive: boolean;
   liveDays?: number;
+  // 현재가(또는 시계열)를 마지막으로 실데이터에서 받은 시각(ms).
+  // 오프라인 캐시 fallback이면 캐시 기록 시각 — UI 신선도 표시에 사용.
+  fetchedAt?: number;
 };
 
 // ── 결정론적 의사난수 (시드 기반, 빌드마다 동일 곡선) ─────
@@ -146,6 +149,7 @@ async function getSeriesRaw(slug: string): Promise<Series> {
         source: "live",
         sourceName: fx.source,
         pastIsLive: true, // Frankfurter/Twelve Data는 일별 실 시계열
+        fetchedAt: fx.fetchedAt,
       };
     }
     const past = fx.past.map((p) => ({ date: p.date, value: round(p.value) }));
@@ -157,6 +161,8 @@ async function getSeriesRaw(slug: string): Promise<Series> {
       source: "synthetic",
       sourceName: fx.source,
       pastIsLive: false,
+      // 오프라인 캐시 fallback(source=frankfurter/twelvedata지만 live=false)이면 캐시 시각.
+      fetchedAt: fx.fetchedAt,
     };
   }
 
@@ -199,6 +205,7 @@ async function getSeriesRaw(slug: string): Promise<Series> {
         sourceName: "opinet+krx-oil",
         pastIsLive: liveDays >= synPast.length,
         liveDays,
+        fetchedAt: latest.fetchedAt,
       };
     }
 
@@ -217,6 +224,7 @@ async function getSeriesRaw(slug: string): Promise<Series> {
         sourceName: "opinet",
         pastIsLive: liveDays >= synPast.length,
         liveDays,
+        fetchedAt: latest.fetchedAt,
       };
     }
     const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
@@ -247,7 +255,7 @@ async function getSeriesRaw(slug: string): Promise<Series> {
       const { merged: mergedRaw, liveDays } = mergeWithDaily(scaledSyn, scaledKrx);
       const merged = smoothPoints(mergedRaw, 7);
       const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
-      return { slug, past: merged, forecast, source: "live", sourceName: "opinet+krx-oil", pastIsLive: liveDays >= synPast.length, liveDays };
+      return { slug, past: merged, forecast, source: "live", sourceName: "opinet+krx-oil", pastIsLive: liveDays >= synPast.length, liveDays, fetchedAt: latest.fetchedAt };
     }
     if (latest.live) {
       await appendDaily(slug, latest.price);
@@ -255,7 +263,7 @@ async function getSeriesRaw(slug: string): Promise<Series> {
       const scaled = scaleToCurrent(synPast, latest.price);
       const { merged, liveDays } = mergeWithDaily(scaled, daily);
       const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
-      return { slug, past: merged, forecast, source: "live", sourceName: "opinet", pastIsLive: liveDays >= synPast.length, liveDays };
+      return { slug, past: merged, forecast, source: "live", sourceName: "opinet", pastIsLive: liveDays >= synPast.length, liveDays, fetchedAt: latest.fetchedAt };
     }
     const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
     return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
@@ -275,7 +283,7 @@ async function getSeriesRaw(slug: string): Promise<Series> {
       const scaled = scaleToCurrent(synPast, latest.price);
       const { merged, liveDays } = mergeWithDaily(scaled, daily);
       const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
-      return { slug, past: merged, forecast, source: "live", sourceName: "opinet", pastIsLive: liveDays >= synPast.length, liveDays };
+      return { slug, past: merged, forecast, source: "live", sourceName: "opinet", pastIsLive: liveDays >= synPast.length, liveDays, fetchedAt: latest.fetchedAt };
     }
     const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
     return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
@@ -328,6 +336,7 @@ async function getSeriesRaw(slug: string): Promise<Series> {
         sourceName: "coingecko-paxg",
         pastIsLive: liveDays >= synPast.length,
         liveDays,
+        fetchedAt: latest.fetchedAt,
       };
     }
     const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
@@ -357,6 +366,7 @@ async function getSeriesRaw(slug: string): Promise<Series> {
         sourceName: "travelpayouts",
         pastIsLive: liveDays >= synPast.length,
         liveDays,
+        fetchedAt: latest.fetchedAt,
       };
     }
     const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);

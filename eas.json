@@ -43,7 +43,8 @@
         "appleId": "wjs9280@gmail.com"
       },
       "android": {
-        "track": "internal"
+        "track": "internal",
+        "serviceAccountKeyPath": "C:/Users/Jay-server/Desktop/projects/server-agent/uploads/pindog-3c73b6f46ee2_e5c393.json"
       }
     }
   }

@@ -18,6 +18,7 @@ import { AdBanner } from "@/components/AdBanner";
 import { showInterstitialOnce, showRewardedAd } from "@/lib/ad-manager";
 import { Sparkline } from "@/components/Sparkline";
 import { backtestForecast, getSeries, type Series } from "@/lib/demo-series";
+import { logScreen } from "@/lib/firebase";
 import {
   SIGNAL_STYLE,
   applyEventVolatility,
@@ -29,11 +30,13 @@ import {
   metaFor,
 } from "@/lib/signals";
 import { VERDICT_LABEL } from "@/lib/quartiles";
+import { freshnessLabel } from "@/lib/cache";
 import { loadSignalMode, loadTargets, setTarget, type SignalMode } from "@/lib/storage";
 import {
   requestNotificationPermission,
   scheduleLocalAlert,
 } from "@/lib/notifications";
+import { registerPushToken, syncAlertToServer } from "@/lib/push-registration";
 import {
   getNewsSentiment,
   clearNewsCache,
@@ -80,6 +83,11 @@ export default function CategoryScreen() {
   useEffect(() => {
     return () => { showInterstitialOnce(); };
   }, []);
+
+  // 상세 화면 진입 추적 (slug별)
+  useEffect(() => {
+    if (slug) void logScreen(slug);
+  }, [slug]);
 
   useEffect(() => {
     if (!slug) return;
@@ -138,6 +146,8 @@ export default function CategoryScreen() {
     : null;
   const s = SIGNAL_STYLE[stats.signal];
   const iconSrc = iconSourceFor(slug);
+  // 데이터 신선도 — 오프라인 캐시 fallback이면 source가 "synthetic"이지만 fetchedAt이 남아있음.
+  const freshness = freshnessLabel(series.fetchedAt, series.source !== "live");
 
   const saveTarget = async () => {
     const num = Number(draftTarget.replace(/,/g, ""));
@@ -173,6 +183,9 @@ export default function CategoryScreen() {
               }
               await setTarget(slug, num);
               setTargetState(num);
+              // 서버 푸시(Edge Function)에도 목표가 동기화 — 권한 직후일 수 있어 토큰도 등록
+              void registerPushToken();
+              void syncAlertToServer(slug, num);
               await scheduleLocalAlert({
                 title: `${meta.name} 알림 설정됨`,
                 body: `${num.toLocaleString()}${meta.unit} 이하일 때 알려드릴게요.`,
@@ -187,6 +200,9 @@ export default function CategoryScreen() {
     }
     await setTarget(slug, num);
     setTargetState(num);
+    // 서버 푸시(Edge Function)에도 목표가 동기화 — 권한 직후일 수 있어 토큰도 등록
+    void registerPushToken();
+    void syncAlertToServer(slug, num);
     await scheduleLocalAlert({
       title: `${meta.name} 알림 설정됨`,
       body: `${num.toLocaleString()}${meta.unit} 이하일 때 알려드릴게요.`,
@@ -222,6 +238,8 @@ export default function CategoryScreen() {
     await setTarget(slug, null);
     setTargetState(null);
     setDraftTarget("");
+    // 서버 알림 비활성화
+    void syncAlertToServer(slug, null);
   };
 
   const shareCard = async () => {
@@ -229,12 +247,14 @@ export default function CategoryScreen() {
     const fcLine = fcSummary?.cheapest && fcSummary.cheapest.savingAbs > 0
       ? `\n💰 예상 최저 ${fcSummary.cheapest.date} (~${fcSummary.cheapest.savingAbs.toLocaleString()}원 절약)`
       : "";
+    const deepLink = `eolmalka://c/${slug}`;
     const message =
       `${meta.emoji} ${meta.name}\n` +
       `${stats.current.toLocaleString()}${meta.unit} · ${trend} 30d\n` +
       `${s.label} — ${stats.signalText}` +
       fcLine +
-      `\n\n— 얼말까 (시세 비교·예측)`;
+      `\n\n${deepLink}` +
+      `\n— 얼말까 (시세 비교·예측)`;
     // 1) 카드 이미지 캡처 → expo-sharing (이미지 + 텍스트). 실패 시 텍스트 폴백.
     try {
       if (captureBoxRef.current) {
@@ -311,7 +331,19 @@ export default function CategoryScreen() {
               {stats.change30d}%
             </Text>
           </View>
-          <Text style={styles.muted}>현재가</Text>
+          <View style={styles.freshRow}>
+            <Text style={styles.muted}>현재가</Text>
+            {freshness && (
+              <Text
+                style={[
+                  styles.freshness,
+                  { color: freshness.offline ? "#fb923c" : "#52525b" },
+                ]}
+              >
+                {freshness.text}
+              </Text>
+            )}
+          </View>
         </View>
 
         <View
@@ -841,6 +873,12 @@ const styles = StyleSheet.create({
   unitLg: { color: "#71717a", fontSize: 13 },
   pctLg: { marginLeft: "auto", fontSize: 14, fontWeight: "700" },
   muted: { color: "#71717a", fontSize: 12, marginTop: 4 },
+  freshRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+  },
+  freshness: { fontSize: 11, fontWeight: "700", marginTop: 4 },
   tinyMuted: { color: "#6b7280", fontSize: 10, marginTop: 6, lineHeight: 14 },
   signalCard: {
     marginTop: 18,

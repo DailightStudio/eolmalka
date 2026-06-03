@@ -2,6 +2,8 @@
 // 단일 최저가(특가·이상치)에 흔들리지 않는 안정적인 시장 수준 반영.
 // https://api.travelpayouts.com/v2/prices/month-matrix
 
+import { getCachedEnvelope, setCached } from "./cache";
+
 const TOKEN = process.env.EXPO_PUBLIC_TRAVELPAYOUTS_TOKEN;
 const BASE = "https://api.travelpayouts.com";
 
@@ -37,6 +39,7 @@ const ROUTES: Record<string, { origin: string; destination: string }> = {
 export type AirFareResult = {
   price: number;
   live: boolean;
+  fetchedAt?: number; // 실데이터 fetch 성공 시각(ms). 오프라인 fallback이면 캐시 기록 시각.
 };
 
 function median(values: number[]): number {
@@ -57,6 +60,7 @@ export async function getAirFare(slug: string): Promise<AirFareResult> {
   const route = ROUTES[slug];
   if (!route) return { price: 0, live: false };
 
+  const cacheKey = `cache:air:${slug}`;
   try {
     const url =
       `${BASE}/v2/prices/month-matrix` +
@@ -65,22 +69,33 @@ export async function getAirFare(slug: string): Promise<AirFareResult> {
     const res = await fetch(url);
     if (!res.ok) {
       console.warn(`[air] HTTP ${res.status} ${slug}`);
-      return { price: 0, live: false };
+      return offlineFallback(cacheKey);
     }
     const json = (await res.json()) as {
       success?: boolean;
       data?: Array<{ value: number; actual?: boolean }>;
     };
-    if (!json.success || !json.data?.length) return { price: 0, live: false };
+    if (!json.success || !json.data?.length) return offlineFallback(cacheKey);
 
     const prices = json.data
       .filter((x) => x.actual !== false && x.value > 0)
       .map((x) => x.value);
 
-    if (prices.length === 0) return { price: 0, live: false };
-    return { price: median(prices), live: true };
+    if (prices.length === 0) return offlineFallback(cacheKey);
+    const result: AirFareResult = { price: median(prices), live: true, fetchedAt: Date.now() };
+    await setCached(cacheKey, result);
+    return result;
   } catch (e) {
     console.warn("[air] fetch failed", slug, e);
-    return { price: 0, live: false };
+    return offlineFallback(cacheKey);
   }
+}
+
+// 네트워크 실패 시 마지막 성공 데이터(영구 캐시) 사용. 없으면 비라이브(합성 폴백 유도).
+async function offlineFallback(cacheKey: string): Promise<AirFareResult> {
+  const cached = await getCachedEnvelope<AirFareResult>(cacheKey);
+  if (cached && cached.data.price > 0) {
+    return { ...cached.data, live: false, fetchedAt: cached.ts };
+  }
+  return { price: 0, live: false };
 }

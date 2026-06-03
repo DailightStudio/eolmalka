@@ -1,3 +1,4 @@
+import { getCachedEnvelope, setCached } from "./cache";
 import { cachedFetch } from "./fetch-cache";
 
 // 환율 데이터 제공자 — dd-trip fx.provider.ts 포팅.
@@ -20,6 +21,7 @@ export type FxSeriesResult = {
   past: FxPoint[];
   source: FxSource;
   live: boolean;
+  fetchedAt?: number; // 실데이터 fetch 성공 시각(ms). 오프라인 fallback이면 캐시 기록 시각.
 };
 
 const FRANKFURTER_BASE = "https://api.frankfurter.dev/v1";
@@ -36,10 +38,21 @@ async function fetchFxSeriesUncached(
   base: FxBase,
   days: number,
 ): Promise<FxSeriesResult> {
+  const cacheKey = `cache:fx:${base}:${days}`;
   if (!FX_OFFLINE && TWELVE_DATA_KEY) {
     try {
       const past = await fetchTwelveData(base, days);
-      if (past.length > 5) return { base, past, source: "twelvedata", live: true };
+      if (past.length > 5) {
+        const result: FxSeriesResult = {
+          base,
+          past,
+          source: "twelvedata",
+          live: true,
+          fetchedAt: Date.now(),
+        };
+        await setCached(cacheKey, result);
+        return result;
+      }
     } catch {
       // 다음 소스로 폴백
     }
@@ -47,9 +60,26 @@ async function fetchFxSeriesUncached(
   if (!FX_OFFLINE) {
     try {
       const past = await fetchFrankfurter(base, days);
-      if (past.length > 5) return { base, past, source: "frankfurter", live: true };
+      if (past.length > 5) {
+        const result: FxSeriesResult = {
+          base,
+          past,
+          source: "frankfurter",
+          live: true,
+          fetchedAt: Date.now(),
+        };
+        await setCached(cacheKey, result);
+        return result;
+      }
     } catch {
-      // 합성으로 폴백
+      // 오프라인 캐시 → 합성으로 폴백
+    }
+  }
+  // 네트워크 실패 시 마지막 성공 데이터(영구 캐시) 사용 — 신선도는 캐시 기록 시각.
+  if (!FX_OFFLINE) {
+    const cached = await getCachedEnvelope<FxSeriesResult>(cacheKey);
+    if (cached && cached.data.past.length > 5) {
+      return { ...cached.data, live: false, fetchedAt: cached.ts };
     }
   }
   return { base, past: synthetic(base, days), source: "synthetic", live: false };

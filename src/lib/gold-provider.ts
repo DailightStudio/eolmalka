@@ -1,3 +1,4 @@
+import { getCachedEnvelope, setCached } from "./cache";
 import { cachedFetch } from "./fetch-cache";
 
 // 금 시세 — CoinGecko의 PAX Gold(PAXG: 1토큰 = 1 troy oz 금, LBMA 추종 1:1) 활용.
@@ -11,6 +12,7 @@ export type GoldLatest = {
   pricePerOzUsd: number;
   pricePerOzKrw: number;
   live: boolean;
+  fetchedAt?: number; // 실데이터 fetch 성공 시각(ms). 오프라인 fallback이면 캐시 기록 시각.
 };
 
 export function getGoldLatest(): Promise<GoldLatest> {
@@ -18,6 +20,7 @@ export function getGoldLatest(): Promise<GoldLatest> {
 }
 
 async function fetchGoldLatestUncached(): Promise<GoldLatest> {
+  const cacheKey = "cache:gold";
   try {
     const res = await fetch(
       "https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=usd,krw",
@@ -29,14 +32,19 @@ async function fetchGoldLatestUncached(): Promise<GoldLatest> {
     const usdOz = Number(json["pax-gold"]?.usd);
     const krwOz = Number(json["pax-gold"]?.krw);
     if (!Number.isFinite(krwOz) || krwOz <= 0) throw new Error("no price");
-    return {
+    const result: GoldLatest = {
       pricePerOzUsd: Math.round(usdOz * 100) / 100,
       pricePerOzKrw: Math.round(krwOz),
       pricePerGramKrw: Math.round(krwOz / TROY_OZ_GRAMS),
       live: true,
+      fetchedAt: Date.now(),
     };
+    await setCached(cacheKey, result);
+    return result;
   } catch {
-    // 합성 폴백 — 카테고리 화면이 항상 동작하도록
+    // 네트워크 실패 시 마지막 성공 데이터(영구 캐시) → 없으면 합성 폴백.
+    const cached = await getCachedEnvelope<GoldLatest>(cacheKey);
+    if (cached) return { ...cached.data, live: false, fetchedAt: cached.ts };
     return {
       pricePerOzUsd: 2700,
       pricePerOzKrw: 3700000,
