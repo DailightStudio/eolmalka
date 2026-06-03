@@ -71,8 +71,7 @@ export function Sparkline({
 
   const panResponder = useRef(
     PanResponder.create({
-      // 탭(짧은 터치)은 부모 Pressable/Link로 통과, 드래그만 클레임
-      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponder: () => true,
       // 수평 제스처만 클레임 — 세로 스크롤은 부모 ScrollView로 통과
       onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) >= Math.abs(g.dy),
       onPanResponderGrant: (evt) =>
