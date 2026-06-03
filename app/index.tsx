@@ -170,7 +170,7 @@ export default function HomeScreen() {
     const result: ListItem[] = [];
     sorted.forEach((card, i) => {
       result.push({ type: "card", data: card });
-      if ((i + 1) % 3 === 0) {
+      if ((i + 1) % 5 === 0) {
         result.push({ type: "native_ad", key: `ad-${i}` });
       }
     });
