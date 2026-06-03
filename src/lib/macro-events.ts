@@ -121,9 +121,25 @@ const TYPE_EMOJI: Record<MacroEventType, string> = {
   OPEC: "🛢️",
 };
 
+// 이벤트 발표 직후(D-day~D+1) 주요 자산의 평균 절대 변동률 (%).
+// 역사적 통계 근사치. 실제는 컨센서스 대비 surprise에 좌우.
+// 영향력 큰 이벤트는 큰 변동, 정례·예측가능한 이벤트는 작은 변동.
+export const POST_EVENT_VOLATILITY: Record<MacroEventType, number> = {
+  FOMC: 0.9,    // FOMC 발표 후 환율·금 ±0.9% 내외
+  US_CPI: 0.7,
+  US_PCE: 0.4,
+  US_NFP: 0.6,
+  US_FFR: 1.2,
+  KR_CPI: 0.3,
+  BOK: 0.5,
+  ECB: 0.6,
+  OPEC: 1.5,    // OPEC 결정은 유가에 큰 변동
+};
+
 export type UpcomingEvent = MacroEvent & {
   daysAhead: number;
   emoji: string;
+  expectedVolatility: number; // % (예: 0.9 = ±0.9%)
 };
 
 export function upcomingEvents(
@@ -147,6 +163,7 @@ export function upcomingEvents(
       ...e,
       daysAhead: Math.max(0, Math.round((Date.parse(e.date) - todayMs) / 86400000)),
       emoji: TYPE_EMOJI[e.type],
+      expectedVolatility: POST_EVENT_VOLATILITY[e.type] ?? 0.5,
     }));
 }
 

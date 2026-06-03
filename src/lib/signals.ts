@@ -164,6 +164,34 @@ function round0(v: number): number {
   return Math.round(v * 100) / 100;
 }
 
+// 뉴스 sentiment를 forecast에 ±bias로 반영.
+// bullish: 30일에 걸쳐 +0.5% 누적 / bearish: -0.5% / neutral: 변경 없음.
+// 단순화한 휴리스틱 — 강도는 카테고리·시장 상황에 따라 다를 수 있음.
+export function applySentimentBias(
+  series: Series,
+  sentiment: "bullish" | "bearish" | "neutral" | null | undefined,
+): Series {
+  if (!sentiment || sentiment === "neutral" || series.forecast.length === 0) return series;
+  const totalBias = sentiment === "bullish" ? 0.005 : -0.005; // ±0.5%
+  const forecast = series.forecast.map((p, i) => {
+    const t = (i + 1) / series.forecast.length;
+    return { ...p, value: p.value * (1 + totalBias * t) };
+  });
+  const forecastBand = series.forecastBand
+    ? {
+        upper: series.forecastBand.upper.map((v, i) => {
+          const t = (i + 1) / series.forecast.length;
+          return v * (1 + totalBias * t);
+        }),
+        lower: series.forecastBand.lower.map((v, i) => {
+          const t = (i + 1) / series.forecast.length;
+          return v * (1 + totalBias * t);
+        }),
+      }
+    : undefined;
+  return { ...series, forecast, forecastBand };
+}
+
 // 요일별 평균 가격 — 1년치 시계열 활용
 // 결과: [{ day: '월', avg: 1376, diffPct: -0.3 }, ...] (전체 평균 대비)
 export type DayOfWeekStat = {

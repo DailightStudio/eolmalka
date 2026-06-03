@@ -13,6 +13,7 @@ import { Sparkline } from "@/components/Sparkline";
 import { getSeries, type Series } from "@/lib/demo-series";
 import {
   SIGNAL_STYLE,
+  applySentimentBias,
   computeStats,
   dayOfWeekStats,
   forecastChange,
@@ -80,10 +81,12 @@ export default function CategoryScreen() {
     );
   }
 
-  const stats = computeStats(series);
-  const fcDelta = forecastChange(series);
-  const fcSummary = forecastSummary(series);
-  const dow = dayOfWeekStats(series);
+  // 뉴스 sentiment 받았으면 forecast에 ±0.5% bias 반영
+  const adjustedSeries = applySentimentBias(series, news?.sentiment);
+  const stats = computeStats(adjustedSeries);
+  const fcDelta = forecastChange(adjustedSeries);
+  const fcSummary = forecastSummary(adjustedSeries);
+  const dow = dayOfWeekStats(adjustedSeries);
   const events = upcomingEvents(slug, 60, 5);
   const s = SIGNAL_STYLE[stats.signal];
 
@@ -184,8 +187,9 @@ export default function CategoryScreen() {
         <Text style={styles.sectionTitle}>1년 추이 + 예측 30일</Text>
         <View style={styles.chartBox}>
           <Sparkline
-            past={series.past}
-            forecast={series.forecast}
+            past={adjustedSeries.past}
+            forecast={adjustedSeries.forecast}
+            forecastBand={adjustedSeries.forecastBand}
             width={320}
             height={160}
             stroke={s.stroke}
@@ -242,7 +246,9 @@ export default function CategoryScreen() {
                         <Text style={{ color: "#fb7185" }}>  ⭐</Text>
                       )}
                     </Text>
-                    <Text style={styles.evDate}>{e.date}</Text>
+                    <Text style={styles.evDate}>
+                      {e.date} · 발표 후 평균 ±{e.expectedVolatility}% 변동
+                    </Text>
                   </View>
                   <Text style={styles.evDday}>
                     D-{e.daysAhead === 0 ? "DAY" : e.daysAhead}
@@ -250,7 +256,8 @@ export default function CategoryScreen() {
                 </View>
               ))}
               <Text style={styles.tinyMuted}>
-                ※ 예상 일정 — 공식 발표 일정은 변동 가능. ⭐ = 시장 변동성 큰 이벤트.
+                ※ 예상 일정 + 역사적 평균 변동성. 실제는 컨센서스 surprise에
+                따라 더 크거나 작을 수 있음.
               </Text>
             </View>
           </>
@@ -374,7 +381,9 @@ export default function CategoryScreen() {
                 )}
               </View>
               <Text style={styles.tinyMuted}>
-                ※ 단순 평균회귀 모델. 시장 이벤트(FOMC·CPI 등) 미반영.
+                ※ 7d/30d/90d 가중 추세{news?.sentiment && news.sentiment !== "neutral"
+                  ? ` + 뉴스 ${news.sentiment === "bullish" ? "상승" : "하락"} bias`
+                  : ""}{". 음영=±1σ 신뢰구간 (시간 갈수록 넓어짐)."}
               </Text>
             </View>
           </>

@@ -5,16 +5,19 @@ import type { Point } from "@/lib/demo-series";
 type Props = {
   past: Point[];
   forecast?: Point[];
+  // 신뢰구간(±1σ) — forecast와 같은 길이
+  forecastBand?: { upper: number[]; lower: number[] };
   width?: number;
   height?: number;
   stroke?: string;
   smooth?: boolean;
 };
 
-// react-native-svg 기반 라인 차트. 과거 실선 + 예측 파선 + 현재 시점 마커.
+// react-native-svg 기반 라인 차트. 과거 실선 + 예측 파선 + 신뢰구간 영역 + 현재 시점 마커.
 export function Sparkline({
   past,
   forecast = [],
+  forecastBand,
   width = 320,
   height = 80,
   stroke = "#a3e635",
@@ -28,7 +31,10 @@ export function Sparkline({
   const innerH = height - padY * 2;
 
   const all = [...past, ...forecast];
-  const values = all.map((p) => p.value);
+  const bandValues = forecastBand
+    ? [...forecastBand.upper, ...forecastBand.lower]
+    : [];
+  const values = [...all.map((p) => p.value), ...bandValues];
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
@@ -54,8 +60,30 @@ export function Sparkline({
   const cx = xAt(fcOffset);
   const cy = yAt(past[past.length - 1].value);
 
+  // 신뢰구간 영역 (upper → lower 닫힌 polygon)
+  let bandPath = "";
+  if (forecastBand && forecast.length > 0) {
+    const upperPts: Array<[number, number]> = forecastBand.upper.map((v, i) => [
+      xAt(fcOffset + 1 + i),
+      yAt(v),
+    ]);
+    const lowerPts: Array<[number, number]> = forecastBand.lower
+      .map((v, i): [number, number] => [xAt(fcOffset + 1 + i), yAt(v)])
+      .reverse();
+    // 시작점은 현재가
+    const startX = xAt(fcOffset);
+    const startY = yAt(past[past.length - 1].value);
+    const pts = [[startX, startY], ...upperPts, ...lowerPts, [startX, startY]];
+    bandPath = pts
+      .map(([x, y], i) => (i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`))
+      .join(" ") + " Z";
+  }
+
   return (
     <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      {bandPath ? (
+        <Path d={bandPath} fill={stroke} opacity={0.13} stroke="none" />
+      ) : null}
       <Path d={pastPath} fill="none" stroke={stroke} strokeWidth={1.5} />
       {forecastPath ? (
         <Path

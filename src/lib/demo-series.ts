@@ -20,6 +20,8 @@ export type Series = {
   slug: string;
   past: Point[];
   forecast: Point[];
+  // forecast와 같은 길이, 각 점의 ±1σ 상·하한 (불확실성 시각화용)
+  forecastBand?: { upper: number[]; lower: number[] };
   source: "live" | "synthetic";
   sourceName:
     | FxSource
@@ -28,9 +30,7 @@ export type Series = {
     | "coingecko-paxg"
     | "krx-gold"
     | "synthetic";
-  // 시계열(past) 전체가 실 데이터인지(환율) vs 합성 스케일인지(휘발유·금)
   pastIsLive: boolean;
-  // 합성에 누적된 실 데이터가 몇 일 섞였는지 (시계열 누적 표시용)
   liveDays?: number;
 };
 
@@ -86,6 +86,14 @@ function ymd(d: Date): string {
 }
 
 export async function getSeries(slug: string): Promise<Series> {
+  const s = await getSeriesRaw(slug);
+  if (s.forecast.length > 0 && s.past.length > 0) {
+    return { ...s, forecastBand: computeForecastBand(s.past, s.forecast) };
+  }
+  return s;
+}
+
+async function getSeriesRaw(slug: string): Promise<Series> {
   // 1) 환율 — 실데이터 시도
   const fxBase = fxBaseOf(slug);
   if (fxBase) {
@@ -279,7 +287,6 @@ function projectForecast(
 
   let dailyDrift: number;
   if (forecastDir !== undefined) {
-    // 합성 카테고리: profile의 forecastDir 사용 (days 전체에 걸쳐 분산)
     dailyDrift = forecastDir / days;
   } else {
     dailyDrift = computeBlendedDrift(past);
@@ -292,6 +299,41 @@ function projectForecast(
     out.push({ date: ymd(date), value: round(value), forecast: true });
   }
   return out;
+}
+
+// 시계열의 일별 변동성(σ)을 이용해 forecast의 ±1σ 신뢰구간 산출.
+// 시간이 지날수록 불확실성 증가 (Brownian-like sqrt(t)).
+export function computeForecastBand(past: Point[], forecast: Point[]): {
+  upper: number[];
+  lower: number[];
+} {
+  const sigma = computeDailySigma(past);
+  const upper: number[] = [];
+  const lower: number[] = [];
+  forecast.forEach((p, i) => {
+    const sigmaT = sigma * Math.sqrt(i + 1);
+    upper.push(Math.round(p.value * (1 + sigmaT) * 100) / 100);
+    lower.push(Math.round(p.value * (1 - sigmaT) * 100) / 100);
+  });
+  return { upper, lower };
+}
+
+// 일별 수익률의 표준편차 (최근 60일)
+function computeDailySigma(past: Point[]): number {
+  const n = past.length;
+  if (n < 5) return 0.01;
+  const window = Math.min(60, n - 1);
+  const rets: number[] = [];
+  for (let i = n - window; i < n; i++) {
+    const prev = past[i - 1]?.value;
+    const curr = past[i].value;
+    if (prev && curr) rets.push((curr - prev) / prev);
+  }
+  if (rets.length === 0) return 0.01;
+  const mean = rets.reduce((a, b) => a + b, 0) / rets.length;
+  const variance =
+    rets.reduce((a, b) => a + (b - mean) ** 2, 0) / rets.length;
+  return Math.max(0.001, Math.sqrt(variance));
 }
 
 // 다중 기간 추세 가중 → 하루당 drift (%)
