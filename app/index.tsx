@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
   signalLabel: { fontWeight: "700" },
   signalSub: { color: "#a1a1aa" },
   footnote: {
-    color: "#52525b",
+    color: "#6b7280",
     fontSize: 10,
     marginTop: 20,
     lineHeight: 16,

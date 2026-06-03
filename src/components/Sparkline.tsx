@@ -5,8 +5,6 @@ import type { Point } from "@/lib/demo-series";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const VPAD = 16; // 위아래 터치 여백 (그래프 선 위뿐 아니라 여유 영역도 터치 가능)
-
 type Props = {
   past: Point[];
   forecast?: Point[];
@@ -34,6 +32,9 @@ export function Sparkline({
   smooth = false,
 }: Props) {
   if (past.length < 2) return null;
+
+  // 컴팩트 차트(메인 카드 등)는 여백·폰트를 줄여 세로 스크롤·가독성 확보
+  const VPAD = height <= 60 ? 8 : 16; // 위아래 터치 여백
 
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
@@ -71,7 +72,8 @@ export function Sparkline({
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      // 수평 제스처만 클레임 — 세로 스크롤은 부모 ScrollView로 통과
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) >= Math.abs(g.dy),
       onPanResponderGrant: (evt) =>
         touchHandlerRef.current(evt.nativeEvent.locationX),
       onPanResponderMove: (evt) =>
@@ -140,7 +142,7 @@ export function Sparkline({
   let dateLabel = "";
   let priceLabel = "";
   let tipLeft = 0;
-  const TIP_W = 110; // 툴팁 영역 추정 너비
+  const TIP_W = height <= 60 ? 90 : 110; // 툴팁 영역 추정 너비
   if (tooltip) {
     // "6월 3일" 형식 (연도 제거, 한국식)
     const d = new Date(tooltip.point.date + "T00:00:00Z");
@@ -207,7 +209,11 @@ export function Sparkline({
           }}
         >
           <Text
-            style={{ color: "#6b7280", fontSize: 10, lineHeight: 13 }}
+            style={{
+              color: "#6b7280",
+              fontSize: height <= 60 ? 9 : 10,
+              lineHeight: height <= 60 ? 12 : 13,
+            }}
             numberOfLines={1}
           >
             {dateLabel}
@@ -216,9 +222,9 @@ export function Sparkline({
           <Text
             style={{
               color: "#e6eef8",
-              fontSize: 16,
+              fontSize: height <= 60 ? 12 : 16,
               fontWeight: "800",
-              lineHeight: 21,
+              lineHeight: height <= 60 ? 16 : 21,
             }}
             numberOfLines={1}
           >

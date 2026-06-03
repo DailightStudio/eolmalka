@@ -34,6 +34,7 @@ import {
 } from "@/lib/notifications";
 import {
   getNewsSentiment,
+  clearNewsCache,
   SENTIMENT_STYLE,
   type NewsHeadline,
   type NewsResult,
@@ -154,6 +155,17 @@ export default function CategoryScreen() {
     if (!sigungus[code]) {
       const list = await getSiGunGuPrices(code, "B027");
       setSigungus((prev) => ({ ...prev, [code]: list }));
+    }
+  };
+
+  const refreshNews = async () => {
+    await clearNewsCache(slug);
+    setNewsLoading(true);
+    try {
+      const n = await getNewsSentiment(slug);
+      setNews(n);
+    } finally {
+      setNewsLoading(false);
     }
   };
 
@@ -575,7 +587,14 @@ export default function CategoryScreen() {
           </>
         )}
 
-        <Text style={styles.sectionTitle}>📰 시장 분위기 (뉴스)</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 20 }}>
+          <Text style={[styles.sectionTitle, { marginTop: 0, flex: 1 }]}>📰 시장 분위기 (뉴스)</Text>
+          <Pressable onPress={refreshNews} hitSlop={8} disabled={newsLoading}>
+            <Text style={{ color: newsLoading ? "#3f3f46" : "#a3e635", fontSize: 11, fontWeight: "700" }}>
+              {newsLoading ? "로딩 중…" : "새로고침"}
+            </Text>
+          </Pressable>
+        </View>
         <View style={styles.newsCard}>
           {newsLoading && !news ? (
             <Text style={styles.muted}>뉴스 분석 중…</Text>
@@ -787,7 +806,7 @@ const styles = StyleSheet.create({
   unitLg: { color: "#71717a", fontSize: 13 },
   pctLg: { marginLeft: "auto", fontSize: 14, fontWeight: "700" },
   muted: { color: "#71717a", fontSize: 12, marginTop: 4 },
-  tinyMuted: { color: "#52525b", fontSize: 10, marginTop: 6, lineHeight: 14 },
+  tinyMuted: { color: "#6b7280", fontSize: 10, marginTop: 6, lineHeight: 14 },
   signalCard: {
     marginTop: 18,
     borderRadius: 16,

@@ -264,6 +264,12 @@ async function writeCache(slug: string, result: NewsResult): Promise<void> {
   } catch {}
 }
 
+export async function clearNewsCache(slug: string): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(`${CACHE_PREFIX}${slug}`);
+  } catch {}
+}
+
 // ── 프록시(Supabase Edge Function) 호출 ─────────────
 async function classifyViaProxy(
   category: string,
