@@ -43,6 +43,7 @@ import { upcomingEvents, type UpcomingEvent } from "@/lib/macro-events";
 import {
   getSidoPrices,
   getSiGunGuPrices,
+  type GasProduct,
   type SidoPrice,
   type SiGunGuPrice,
 } from "@/lib/gas-provider";
@@ -63,6 +64,15 @@ export default function CategoryScreen() {
   const captureBoxRef = useRef<View>(null);
 
   const meta = slug ? metaFor(slug) : undefined;
+  // 주유 카테고리 슬러그 → 오피넷 제품 코드 (gas-* 아니면 undefined)
+  const gasProdCode: GasProduct | undefined =
+    slug === "gas-petrol"
+      ? "B027"
+      : slug === "gas-diesel"
+        ? "D047"
+        : slug === "gas-lpg"
+          ? "C004"
+          : undefined;
 
   useEffect(() => {
     if (!slug) return;
@@ -75,9 +85,9 @@ export default function CategoryScreen() {
       setTargetState(t);
       setDraftTarget(t != null ? String(t) : "");
 
-      // 휘발유 한정 — 시도별 평균 (비동기, 차단 X)
-      if (slug === "gas-petrol") {
-        void getSidoPrices("B027").then(setSidoPrices);
+      // 주유 카테고리 — 시도별 평균 (비동기, 차단 X)
+      if (gasProdCode) {
+        void getSidoPrices(gasProdCode).then(setSidoPrices);
       }
 
       // 뉴스는 별도 비동기 — 시세 화면 먼저 뜨게
@@ -89,7 +99,7 @@ export default function CategoryScreen() {
         setNewsLoading(false);
       }
     })();
-  }, [slug]);
+  }, [slug, gasProdCode]);
 
   if (!meta || !slug) {
     return (
@@ -153,7 +163,7 @@ export default function CategoryScreen() {
     }
     setOpenSido(code);
     if (!sigungus[code]) {
-      const list = await getSiGunGuPrices(code, "B027");
+      const list = await getSiGunGuPrices(code, gasProdCode ?? "B027");
       setSigungus((prev) => ({ ...prev, [code]: list }));
     }
   };
@@ -367,7 +377,7 @@ export default function CategoryScreen() {
           </>
         )}
 
-        {slug === "gas-petrol" && sidoPrices.length > 0 && (
+        {slug?.startsWith("gas-") && sidoPrices.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>📍 시도별 평균 (실시간)</Text>
             <View style={styles.sidoCard}>

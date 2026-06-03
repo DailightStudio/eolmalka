@@ -367,6 +367,8 @@ const CATEGORY_BASE: Record<string, { emoji: string; unitKey: string }> = {
   "fx-usd":     { emoji: "💵", unitKey: "cat.unit.krw" },
   "fx-jpy":     { emoji: "💴", unitKey: "cat.unit.krw" },
   "gas-petrol": { emoji: "⛽", unitKey: "cat.unit.perL" },
+  "gas-diesel": { emoji: "⛽", unitKey: "cat.unit.perL" },
+  "gas-lpg":    { emoji: "🔵", unitKey: "cat.unit.perL" },
   "gold-kr":    { emoji: "🪙", unitKey: "cat.unit.perG" },
   "air-nrt":    { emoji: "✈️", unitKey: "cat.unit.krw" },
   "air-tpe":    { emoji: "✈️", unitKey: "cat.unit.krw" },

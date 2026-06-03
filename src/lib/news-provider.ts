@@ -63,6 +63,8 @@ const QUERIES: Record<string, Queries> = {
   "fx-mxn":     { ko: "멕시코페소 환율",      en: "Mexico peso Banxico" },
   "fx-php":     { ko: "필리핀페소 환율",      en: "Philippines peso BSP" },
   "gas-petrol": { ko: "휘발유 가격 한국 오피넷", en: "OPEC oil price WTI Brent" },
+  "gas-diesel": { ko: "경유 가격 한국 오피넷", en: "diesel fuel price Korea" },
+  "gas-lpg":    { ko: "LPG 가격 한국 부탄",   en: "LPG autogas price Korea" },
   "gold-kr":    { ko: "금 시세 한국",         en: "gold price LBMA Fed inflation" },
   "air-nrt":    { ko: "도쿄 항공권 가격",         en: "Japan Tokyo tourism airfare" },
   "air-tpe":    { ko: "타이베이 항공권 가격",     en: "Taiwan tourism airfare" },

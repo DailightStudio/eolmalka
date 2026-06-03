@@ -74,6 +74,8 @@ type SyntheticProfile = {
 
 const SYN_PROFILES: Record<string, SyntheticProfile> = {
   "gas-petrol": { base: 1652,  yearlyAmp: 0.06, noiseAmp: 0.004, trend: 0.00, forecastDir: 0.003 },
+  "gas-diesel": { base: 1532,  yearlyAmp: 0.07, noiseAmp: 0.004, trend: 0.00, forecastDir: 0.002 },
+  "gas-lpg":    { base: 1100,  yearlyAmp: 0.05, noiseAmp: 0.005, trend: 0.00, forecastDir: 0.001 },
   "gold-kr":    { base: 125400, yearlyAmp: 0.08, noiseAmp: 0.006, trend: 0.15, forecastDir: 0.02 },
   "air-nrt":    { base: 220000, yearlyAmp: 0.18, noiseAmp: 0.025, trend: 0.00, forecastDir: -0.04 },
   "air-tpe":    { base: 300000, yearlyAmp: 0.20, noiseAmp: 0.030, trend: 0.02, forecastDir:  0.06 },
@@ -216,6 +218,58 @@ async function getSeriesRaw(slug: string): Promise<Series> {
         pastIsLive: liveDays >= synPast.length,
         liveDays,
       };
+    }
+    const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+    return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
+  }
+
+  // 2') 경유 — gas-petrol과 동일 로직, D047 + KRX 경유 시계열
+  if (slug === "gas-diesel") {
+    const profile = SYN_PROFILES[slug];
+    const synPast = buildSynthetic(slug, profile);
+    const latest = await getGasLatest("D047");
+    void backfillChunk("gas-diesel", "D047").catch((e) =>
+      console.warn("[opinet backfill]", e),
+    );
+    const krxOil = await getKrxOilDaily(365, "경유");
+    if (krxOil && krxOil.length >= 5 && latest.live) {
+      const smoothedCloses = movingAverage(krxOil.map((p) => p.close), 7);
+      const krxLast = smoothedCloses[smoothedCloses.length - 1];
+      const ratio = latest.price / krxLast;
+      const scaledKrx: Point[] = krxOil.map((p, i) => ({
+        date: p.date,
+        value:
+          i === krxOil.length - 1
+            ? round(latest.price)
+            : round(smoothedCloses[i] * ratio),
+      }));
+      const scaledSyn = scaleToCurrent(synPast, latest.price);
+      const { merged: mergedRaw, liveDays } = mergeWithDaily(scaledSyn, scaledKrx);
+      const merged = smoothPoints(mergedRaw, 7);
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      return { slug, past: merged, forecast, source: "live", sourceName: "opinet+krx-oil", pastIsLive: liveDays >= synPast.length, liveDays };
+    }
+    if (latest.live) {
+      await appendDaily(slug, latest.price);
+      const daily = await loadDailySeries(slug);
+      const scaled = scaleToCurrent(synPast, latest.price);
+      const { merged, liveDays } = mergeWithDaily(scaled, daily);
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      return { slug, past: merged, forecast, source: "live", sourceName: "opinet", pastIsLive: liveDays >= synPast.length, liveDays };
+    }
+    const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+    return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
+  }
+
+  // 2'') LPG — KRX 미지원, 오피넷 현재가 + 합성 시계열
+  if (slug === "gas-lpg") {
+    const profile = SYN_PROFILES[slug];
+    const synPast = buildSynthetic(slug, profile);
+    const latest = await getGasLatest("C004");
+    if (latest.live) {
+      const scaled = scaleToCurrent(synPast, latest.price);
+      const forecast = projectForecast(scaled, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      return { slug, past: scaled, forecast, source: "live", sourceName: "opinet", pastIsLive: false, liveDays: 0 };
     }
     const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
     return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
