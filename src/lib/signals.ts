@@ -164,6 +164,66 @@ function round0(v: number): number {
   return Math.round(v * 100) / 100;
 }
 
+// 요일별 평균 가격 — 1년치 시계열 활용
+// 결과: [{ day: '월', avg: 1376, diffPct: -0.3 }, ...] (전체 평균 대비)
+export type DayOfWeekStat = {
+  day: string;     // 월/화/수/...
+  dayIdx: number;  // 0=일 1=월 ... 6=토 (JS Date getDay)
+  avg: number;
+  count: number;
+  diffPct: number; // 전체 평균 대비 (%)
+};
+
+const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+
+export function dayOfWeekStats(series: Series): {
+  stats: DayOfWeekStat[];
+  cheapest: DayOfWeekStat;
+  highest: DayOfWeekStat;
+} | null {
+  const past = series.past;
+  if (past.length < 30) return null;
+  const buckets: { sum: number; count: number }[] = Array.from(
+    { length: 7 },
+    () => ({ sum: 0, count: 0 }),
+  );
+  let totalSum = 0;
+  let totalCount = 0;
+  for (const p of past) {
+    const d = new Date(p.date + "T00:00:00Z").getUTCDay();
+    if (Number.isNaN(d)) continue;
+    buckets[d].sum += p.value;
+    buckets[d].count++;
+    totalSum += p.value;
+    totalCount++;
+  }
+  if (totalCount === 0) return null;
+  const totalAvg = totalSum / totalCount;
+  const stats: DayOfWeekStat[] = buckets
+    .map((b, i) => {
+      const avg = b.count > 0 ? b.sum / b.count : totalAvg;
+      return {
+        day: DAY_LABELS[i],
+        dayIdx: i,
+        avg: round0(avg),
+        count: b.count,
+        diffPct: round1(((avg - totalAvg) / totalAvg) * 100),
+      };
+    })
+    // 월요일부터 일요일 순으로 (월 첫째 칸이 한국 관습)
+    .sort((a, b) => {
+      const order = [1, 2, 3, 4, 5, 6, 0]; // 월~일
+      return order.indexOf(a.dayIdx) - order.indexOf(b.dayIdx);
+    });
+
+  // count>0 인 요일만 비교 (휴장일 영향)
+  const valid = stats.filter((s) => s.count > 0);
+  const cheapest = valid.reduce((a, b) => (b.avg < a.avg ? b : a));
+  const highest = valid.reduce((a, b) => (b.avg > a.avg ? b : a));
+
+  return { stats, cheapest, highest };
+}
+
 // RN 호환 색상 (rgba bg, hex border/stroke)
 export const SIGNAL_STYLE: Record<
   Signal,

@@ -14,6 +14,7 @@ import { getSeries, type Series } from "@/lib/demo-series";
 import {
   SIGNAL_STYLE,
   computeStats,
+  dayOfWeekStats,
   forecastChange,
   forecastSummary,
   metaFor,
@@ -81,6 +82,7 @@ export default function CategoryScreen() {
   const stats = computeStats(series);
   const fcDelta = forecastChange(series);
   const fcSummary = forecastSummary(series);
+  const dow = dayOfWeekStats(series);
   const s = SIGNAL_STYLE[stats.signal];
 
   const saveTarget = async () => {
@@ -223,6 +225,62 @@ export default function CategoryScreen() {
             MA30 {fmt(stats.ma30)}
           </Text>
         </View>
+
+        {dow && (
+          <>
+            <Text style={styles.sectionTitle}>📅 요일별 평균 (지난 1년)</Text>
+            <View style={styles.dowCard}>
+              <View style={styles.dowRow}>
+                {dow.stats.map((d) => {
+                  const isMin = d.dayIdx === dow.cheapest.dayIdx;
+                  const isMax = d.dayIdx === dow.highest.dayIdx;
+                  return (
+                    <View key={d.dayIdx} style={styles.dowCell}>
+                      <Text
+                        style={[
+                          styles.dowDay,
+                          isMin && { color: "#a3e635" },
+                          isMax && { color: "#fb7185" },
+                        ]}
+                      >
+                        {d.day}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.dowPct,
+                          {
+                            color:
+                              d.diffPct > 0
+                                ? "#fb7185"
+                                : d.diffPct < 0
+                                  ? "#a3e635"
+                                  : "#71717a",
+                          },
+                        ]}
+                      >
+                        {d.diffPct > 0 ? "+" : ""}
+                        {d.diffPct}%
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+              <Text style={styles.tinyMuted}>
+                💡 평균적으로{" "}
+                <Text style={{ color: "#a3e635", fontWeight: "700" }}>
+                  {dow.cheapest.day}요일
+                </Text>
+                이 가장 저렴 (
+                {dow.cheapest.avg.toLocaleString()}
+                {meta.unit.replace(/^원/, "")}),{" "}
+                <Text style={{ color: "#fb7185", fontWeight: "700" }}>
+                  {dow.highest.day}요일
+                </Text>
+                이 가장 비쌈.
+              </Text>
+            </View>
+          </>
+        )}
 
         {fcSummary && (
           <>
@@ -563,4 +621,23 @@ const styles = StyleSheet.create({
   },
   fcCheapText: { fontSize: 12, lineHeight: 18 },
   fcCheapValue: { color: "#fafafa", fontSize: 15, fontWeight: "800" },
+  dowCard: {
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#27272a",
+    padding: 12,
+  },
+  dowRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  dowCell: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  dowDay: { color: "#d4d4d8", fontSize: 12, fontWeight: "700" },
+  dowPct: { fontSize: 10, fontWeight: "600", marginTop: 4 },
 });

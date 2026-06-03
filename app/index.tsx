@@ -39,32 +39,60 @@ export default function HomeScreen() {
   const [favs, setFavs] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<SortMode>("default");
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState<string[]>([]);
 
   const load = useCallback(async () => {
-    const userCats = await loadUserCategories();
-    const slugs = allSlugs(userCats);
-    const next = await Promise.all(
-      slugs.map(async (slug): Promise<Card | null> => {
-        const meta = metaFor(slug);
-        if (!meta) return null;
-        const series = await getSeries(slug);
-        const stats = computeStats(series);
-        return { slug, meta, series, stats };
-      }),
-    );
-    setCards(next.filter((c): c is Card => c !== null));
+    setLoading(true);
+    setErrors([]);
+    try {
+      const userCats = await loadUserCategories();
+      const slugs = allSlugs(userCats);
+      // 카테고리 1개 실패해도 나머지 계속 (allSettled)
+      const results = await Promise.allSettled(
+        slugs.map(async (slug): Promise<Card | null> => {
+          const meta = metaFor(slug);
+          if (!meta) return null;
+          const series = await getSeries(slug);
+          const stats = computeStats(series);
+          return { slug, meta, series, stats };
+        }),
+      );
+      const next: Card[] = [];
+      const errs: string[] = [];
+      results.forEach((r, i) => {
+        if (r.status === "fulfilled" && r.value) next.push(r.value);
+        else if (r.status === "rejected") {
+          errs.push(`${slugs[i]}: ${String(r.reason).slice(0, 80)}`);
+          console.warn("[load]", slugs[i], r.reason);
+        }
+      });
+      setCards(next);
+      setErrors(errs);
+    } catch (e) {
+      console.warn("[load] outer", e);
+      setErrors([String(e).slice(0, 120)]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  // 마운트 시 fav·sort 로드 + 첫 데이터 fetch
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       const [f, s] = await Promise.all([loadFavs(), loadSort()]);
+      if (cancelled) return;
       setFavs(f);
       setSort(s);
       await load();
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
-  // 카테고리 추가 화면에서 돌아왔을 때 자동 갱신
+  // 모달 닫힘 시 갱신 (마운트 중복 호출은 cachedFetch가 dedup)
   useFocusEffect(
     useCallback(() => {
       void load();
@@ -164,6 +192,33 @@ export default function HomeScreen() {
       renderItem={({ item }) => (
         <CardRow card={item} isFav={favs.has(item.slug)} onFav={toggleFav} />
       )}
+      ListEmptyComponent={
+        loading ? (
+          <View style={{ paddingVertical: 40, alignItems: "center" }}>
+            <Text style={{ color: "#71717a", fontSize: 13 }}>
+              시세 불러오는 중…
+            </Text>
+          </View>
+        ) : (
+          <View style={{ paddingVertical: 40, alignItems: "center", gap: 6 }}>
+            <Text style={{ color: "#fb7185", fontSize: 13, fontWeight: "700" }}>
+              데이터를 불러오지 못했어요
+            </Text>
+            <Text style={{ color: "#71717a", fontSize: 11 }}>
+              아래로 당겨 새로고침
+            </Text>
+            {errors.slice(0, 3).map((e, i) => (
+              <Text
+                key={i}
+                style={{ color: "#52525b", fontSize: 10, paddingHorizontal: 16 }}
+                numberOfLines={2}
+              >
+                {e}
+              </Text>
+            ))}
+          </View>
+        )
+      }
       ListFooterComponent={
         <View>
           <Link href="/add" asChild>
