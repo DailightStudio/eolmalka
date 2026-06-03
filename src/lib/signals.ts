@@ -372,6 +372,15 @@ const CATEGORY_BASE: Record<string, { emoji: string; unitKey: string }> = {
   "gold-kr":    { emoji: "🪙", unitKey: "cat.unit.perG" },
   "air-nrt":    { emoji: "✈️", unitKey: "cat.unit.krw" },
   "air-tpe":    { emoji: "✈️", unitKey: "cat.unit.krw" },
+  "air-kix":    { emoji: "✈️", unitKey: "cat.unit.krw" },
+  "air-fuk":    { emoji: "✈️", unitKey: "cat.unit.krw" },
+  "air-cts":    { emoji: "✈️", unitKey: "cat.unit.krw" },
+  "air-bkk":    { emoji: "✈️", unitKey: "cat.unit.krw" },
+  "air-sin":    { emoji: "✈️", unitKey: "cat.unit.krw" },
+  "air-hkg":    { emoji: "✈️", unitKey: "cat.unit.krw" },
+  "air-dps":    { emoji: "✈️", unitKey: "cat.unit.krw" },
+  "air-cdg":    { emoji: "✈️", unitKey: "cat.unit.krw" },
+  "air-lax":    { emoji: "✈️", unitKey: "cat.unit.krw" },
 };
 
 export const CATEGORY_SLUGS = Object.keys(CATEGORY_BASE);

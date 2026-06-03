@@ -76,7 +76,16 @@ const SYN_PROFILES: Record<string, SyntheticProfile> = {
   "gas-petrol": { base: 1652,  yearlyAmp: 0.06, noiseAmp: 0.004, trend: 0.00, forecastDir: 0.003 },
   "gold-kr":    { base: 125400, yearlyAmp: 0.08, noiseAmp: 0.006, trend: 0.15, forecastDir: 0.02 },
   "air-nrt":    { base: 220000, yearlyAmp: 0.18, noiseAmp: 0.025, trend: 0.00, forecastDir: -0.04 },
-  "air-tpe":    { base: 300000, yearlyAmp: 0.20, noiseAmp: 0.030, trend: 0.02, forecastDir: 0.06 },
+  "air-tpe":    { base: 300000, yearlyAmp: 0.20, noiseAmp: 0.030, trend: 0.02, forecastDir:  0.06 },
+  "air-kix":    { base: 190000, yearlyAmp: 0.17, noiseAmp: 0.025, trend: 0.00, forecastDir: -0.03 },
+  "air-fuk":    { base: 210000, yearlyAmp: 0.17, noiseAmp: 0.025, trend: 0.00, forecastDir:  0.02 },
+  "air-cts":    { base: 260000, yearlyAmp: 0.22, noiseAmp: 0.030, trend: 0.00, forecastDir: -0.05 },
+  "air-bkk":    { base: 360000, yearlyAmp: 0.15, noiseAmp: 0.028, trend: 0.01, forecastDir:  0.03 },
+  "air-sin":    { base: 390000, yearlyAmp: 0.13, noiseAmp: 0.025, trend: 0.01, forecastDir:  0.04 },
+  "air-hkg":    { base: 260000, yearlyAmp: 0.16, noiseAmp: 0.028, trend: 0.00, forecastDir:  0.02 },
+  "air-dps":    { base: 430000, yearlyAmp: 0.18, noiseAmp: 0.032, trend: 0.02, forecastDir:  0.05 },
+  "air-cdg":    { base: 900000, yearlyAmp: 0.12, noiseAmp: 0.020, trend: 0.01, forecastDir:  0.02 },
+  "air-lax":    { base: 860000, yearlyAmp: 0.11, noiseAmp: 0.018, trend: 0.01, forecastDir:  0.01 },
 };
 
 // 환율 슬러그 → Frankfurter base 통화 (fx-XXX 패턴이면 XXX 추출)

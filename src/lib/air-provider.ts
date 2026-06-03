@@ -1,19 +1,42 @@
-// Travelpayouts Data API — 인천 출발 최저 항공료
-// https://support.travelpayouts.com/hc/en-us/articles/203956163
-// 토큰: EXPO_PUBLIC_TRAVELPAYOUTS_TOKEN
+// Travelpayouts month-matrix API — 이번달 날짜별 최저가 중앙값을 시세로 사용.
+// 단일 최저가(특가·이상치)에 흔들리지 않는 안정적인 시장 수준 반영.
+// https://api.travelpayouts.com/v2/prices/month-matrix
 
 const TOKEN = process.env.EXPO_PUBLIC_TRAVELPAYOUTS_TOKEN;
 const BASE = "https://api.travelpayouts.com";
 
+// destination은 Travelpayouts 도시코드 (NRT→TYO, 나머지는 공항=도시코드 동일)
 const ROUTES: Record<string, { origin: string; destination: string }> = {
-  "air-nrt": { origin: "ICN", destination: "NRT" },
+  "air-nrt": { origin: "ICN", destination: "TYO" },
   "air-tpe": { origin: "ICN", destination: "TPE" },
+  "air-kix": { origin: "ICN", destination: "OSA" },
+  "air-fuk": { origin: "ICN", destination: "FUK" },
+  "air-cts": { origin: "ICN", destination: "CTS" },
+  "air-bkk": { origin: "ICN", destination: "BKK" },
+  "air-sin": { origin: "ICN", destination: "SIN" },
+  "air-hkg": { origin: "ICN", destination: "HKG" },
+  "air-dps": { origin: "ICN", destination: "DPS" },
+  "air-cdg": { origin: "ICN", destination: "PAR" },
+  "air-lax": { origin: "ICN", destination: "LAX" },
 };
 
 export type AirFareResult = {
   price: number;
   live: boolean;
 };
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? Math.round((sorted[mid - 1] + sorted[mid]) / 2)
+    : sorted[mid];
+}
+
+function currentMonth(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 export async function getAirFare(slug: string): Promise<AirFareResult> {
   if (!TOKEN) return { price: 0, live: false };
@@ -22,9 +45,9 @@ export async function getAirFare(slug: string): Promise<AirFareResult> {
 
   try {
     const url =
-      `${BASE}/v1/prices/cheap` +
+      `${BASE}/v2/prices/month-matrix` +
       `?origin=${route.origin}&destination=${route.destination}` +
-      `&currency=KRW&token=${TOKEN}`;
+      `&month=${currentMonth()}&currency=KRW&show_to_affiliates=true&token=${TOKEN}`;
     const res = await fetch(url);
     if (!res.ok) {
       console.warn(`[air] HTTP ${res.status} ${slug}`);
@@ -32,19 +55,16 @@ export async function getAirFare(slug: string): Promise<AirFareResult> {
     }
     const json = (await res.json()) as {
       success?: boolean;
-      data?: Record<string, Record<string, { price: number }>>;
+      data?: Array<{ value: number; actual?: boolean }>;
     };
-    if (!json.success || !json.data) return { price: 0, live: false };
+    if (!json.success || !json.data?.length) return { price: 0, live: false };
 
-    // API가 공항코드(NRT) 대신 도시코드(TYO)로 키를 반환하는 경우가 있어
-    // 응답 data 전체에서 최저가를 추출
-    const prices = Object.values(json.data)
-      .flatMap((destObj) => Object.values(destObj))
-      .map((v) => v.price)
-      .filter((p): p is number => typeof p === "number" && p > 0);
+    const prices = json.data
+      .filter((x) => x.actual !== false && x.value > 0)
+      .map((x) => x.value);
 
     if (prices.length === 0) return { price: 0, live: false };
-    return { price: Math.min(...prices), live: true };
+    return { price: median(prices), live: true };
   } catch (e) {
     console.warn("[air] fetch failed", slug, e);
     return { price: 0, live: false };

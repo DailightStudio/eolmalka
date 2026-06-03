@@ -64,8 +64,17 @@ const QUERIES: Record<string, Queries> = {
   "fx-php":     { ko: "필리핀페소 환율",      en: "Philippines peso BSP" },
   "gas-petrol": { ko: "휘발유 가격 한국 오피넷", en: "OPEC oil price WTI Brent" },
   "gold-kr":    { ko: "금 시세 한국",         en: "gold price LBMA Fed inflation" },
-  "air-nrt":    { ko: "도쿄 항공권 가격",     en: "Japan tourism airfare" },
-  "air-tpe":    { ko: "타이베이 항공권 가격", en: "Taiwan tourism airfare" },
+  "air-nrt":    { ko: "도쿄 항공권 가격",         en: "Japan Tokyo tourism airfare" },
+  "air-tpe":    { ko: "타이베이 항공권 가격",     en: "Taiwan tourism airfare" },
+  "air-kix":    { ko: "오사카 항공권 가격",       en: "Osaka Japan tourism airfare" },
+  "air-fuk":    { ko: "후쿠오카 항공권 가격",     en: "Fukuoka Japan tourism airfare" },
+  "air-cts":    { ko: "삿포로 항공권 가격",       en: "Sapporo Japan tourism airfare" },
+  "air-bkk":    { ko: "방콕 항공권 가격",         en: "Bangkok Thailand tourism airfare" },
+  "air-sin":    { ko: "싱가포르 항공권 가격",     en: "Singapore tourism airfare" },
+  "air-hkg":    { ko: "홍콩 항공권 가격",         en: "Hong Kong tourism airfare" },
+  "air-dps":    { ko: "발리 항공권 가격",         en: "Bali Indonesia tourism airfare" },
+  "air-cdg":    { ko: "파리 유럽 항공권 가격",   en: "Paris France Europe airfare" },
+  "air-lax":    { ko: "미국 로스앤젤레스 항공권", en: "Los Angeles USA airfare" },
 };
 
 export async function getNewsSentiment(slug: string): Promise<NewsResult | null> {
