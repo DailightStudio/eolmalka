@@ -10,6 +10,7 @@ import { getKrxGoldDaily } from "./krx-gold-provider";
 import { getKrxOilDaily } from "./krx-oil-provider";
 import { backfillChunk } from "./opinet-daily-provider";
 import { appendDaily, loadDailySeries, mergeWithDaily } from "./series-store";
+import { getAirFare } from "./air-provider";
 
 export type Point = {
   date: string;
@@ -30,6 +31,7 @@ export type Series = {
     | "opinet+krx-oil"
     | "coingecko-paxg"
     | "krx-gold"
+    | "travelpayouts"
     | "synthetic";
   pastIsLive: boolean;
   liveDays?: number;
@@ -249,7 +251,36 @@ async function getSeriesRaw(slug: string): Promise<Series> {
     return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
   }
 
-  // 4) 나머지 — 결정론적 합성
+  // 4) 항공권 — Travelpayouts 현재가 + 합성 히스토리 스케일
+  if (slug.startsWith("air-")) {
+    const profile = SYN_PROFILES[slug];
+    if (!profile) {
+      return { slug, past: [], forecast: [], source: "synthetic", sourceName: "synthetic", pastIsLive: false };
+    }
+    const synPast = buildSynthetic(slug, profile);
+    const latest = await getAirFare(slug);
+    if (latest.live) {
+      await appendDaily(slug, latest.price);
+      const daily = await loadDailySeries(slug);
+      const scaled = scaleToCurrent(synPast, latest.price);
+      const { merged, liveDays } = mergeWithDaily(scaled, daily);
+      // forecastDir 없이 blended drift + 계절성 조정 사용 (실 가격 기반)
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug);
+      return {
+        slug,
+        past: merged,
+        forecast,
+        source: "live",
+        sourceName: "travelpayouts",
+        pastIsLive: liveDays >= synPast.length,
+        liveDays,
+      };
+    }
+    const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+    return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
+  }
+
+  // 5) 나머지 — 결정론적 합성
   const profile = SYN_PROFILES[slug];
   if (!profile) {
     return { slug, past: [], forecast: [], source: "synthetic", sourceName: "synthetic", pastIsLive: false };
