@@ -3,7 +3,7 @@
     "name": "얼말까",
     "slug": "eolmalka",
     "owner": "jaylabs",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "eolmalka",

@@ -4,7 +4,7 @@
 
 ## 스택
 
-- **Expo SDK 52** + React Native 0.76 + TypeScript 5
+- **Expo SDK 54** + React Native 0.81 + TypeScript 5
 - **Expo Router** (file-based, typed routes)
 - **react-native-svg** (Sparkline)
 - **AsyncStorage** (영구 상태)
