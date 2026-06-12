@@ -8,7 +8,7 @@
     "icon": "./assets/icon.png",
     "scheme": "eolmalka",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dailightstudio.eolmalka",
