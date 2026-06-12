@@ -3,8 +3,8 @@ const path = require("path");
 
 const config = getDefaultConfig(__dirname);
 
-const googleMobileAdsStub = path.resolve(__dirname, "src/stubs/google-mobile-ads.web.js");
-const reactNativeFirebaseStub = path.resolve(__dirname, "src/stubs/react-native-firebase.web.js");
+const googleMobileAdsStub = path.resolve(__dirname, "src/stubs/google-mobile-ads.web.js").replace(/\\/g, "/");
+const reactNativeFirebaseStub = path.resolve(__dirname, "src/stubs/react-native-firebase.web.js").replace(/\\/g, "/");
 
 const originalResolver = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
