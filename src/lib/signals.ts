@@ -40,13 +40,15 @@ function removeOutliers(values: number[]): number[] {
 // (데이터에 고저가가 없어 ATR이 아닌 |close - prevClose| 평균으로 계산)
 function calculateAbsoluteChangeVolatility(past: Point[]): number {
   if (past.length < 2) return 0;
+  const recent = past.slice(-31); // 최근 31개(변동 30개 계산 가능)
   let changeSum = 0;
-  for (let i = 1; i < Math.min(past.length, 30); i++) {
-    changeSum += Math.abs(past[i].value - past[i - 1].value);
+  for (let i = 1; i < recent.length; i++) {
+    changeSum += Math.abs(recent[i].value - recent[i - 1].value);
   }
-  const period = Math.min(past.length - 1, 30);
+  const period = recent.length - 1; // 변동 개수 = 원소 개수 - 1
+  if (period === 0) return 0;
   const avgChange = changeSum / period;
-  return (avgChange / past[past.length - 1].value) * 100; // 평균 변동폭을 백분율로
+  return (avgChange / past[past.length - 1].value) * 100; // 평균 변동폭을 백분율로 (현재가 기준)
 }
 
 // 개선 3: 동적 임계치 계산 — 변동성 기반으로 base 임계치 조정
