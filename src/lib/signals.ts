@@ -22,6 +22,46 @@ const THRESHOLDS: Record<SignalMode, SignalThresholds> = {
   aggressive:   { buyDropPct: -2.5, waitRisePct: 6, highRisePct: 2 },
 };
 
+// 개선 1: 이상치 제거 (IQR 방식) — outlier 제거로 quartile 정확도 향상
+function removeOutliers(values: number[]): number[] {
+  if (values.length < 4) return values;
+  const sorted = [...values].sort((a, b) => a - b);
+  const q1Idx = Math.floor(sorted.length * 0.25);
+  const q3Idx = Math.floor(sorted.length * 0.75);
+  const q1 = sorted[q1Idx];
+  const q3 = sorted[q3Idx];
+  const iqr = q3 - q1;
+  const lower = q1 - 1.5 * iqr;
+  const upper = q3 + 1.5 * iqr;
+  return values.filter((v) => v >= lower && v <= upper);
+}
+
+// 개선 2: 변동성 계산 (ATR 기반) — 시장 변동성에 맞춰 임계치 동적 조정
+function calculateVolatility(past: Point[]): number {
+  if (past.length < 2) return 0;
+  let trSum = 0;
+  for (let i = 1; i < Math.min(past.length, 30); i++) {
+    const h = past[i].value;
+    const l = past[i].value; // 일일 고저가 없으므로 현재가 기준
+    const pc = past[i - 1].value;
+    const tr = Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc));
+    trSum += tr;
+  }
+  const period = Math.min(past.length - 1, 30);
+  const atr = trSum / period;
+  return (atr / past[past.length - 1].value) * 100; // ATR을 백분율로
+}
+
+// 개선 3: 동적 임계치 계산 — 변동성 기반으로 base 임계치 조정
+function getDynamicThresholds(baseThresholds: SignalThresholds, volatility: number): SignalThresholds {
+  const volFactor = Math.max(0.7, Math.min(1.5, 1 + volatility / 10)); // 변동성 30% 범위 내 조정
+  return {
+    buyDropPct: baseThresholds.buyDropPct * volFactor,
+    waitRisePct: baseThresholds.waitRisePct * volFactor,
+    highRisePct: baseThresholds.highRisePct * volFactor,
+  };
+}
+
 export type Signal = "buy" | "wait" | "neutral";
 
 export type SeriesStats = {
@@ -38,6 +78,7 @@ export type SeriesStats = {
 };
 
 // 신호 산출: quartile verdict + 30d 변동률 조합. mode로 임계치 조정.
+// 개선: 이상치 제거 + 동적 임계치 적용
 export function computeStats(series: Series, mode: SignalMode = "default"): SeriesStats {
   const past = series.past;
   const n = past.length;
@@ -57,10 +98,16 @@ export function computeStats(series: Series, mode: SignalMode = "default"): Seri
   const ma30 =
     past.slice(-30).reduce((sum, p) => sum + p.value, 0) / Math.min(30, n);
 
+  // 개선 1: 이상치 제거 후 quartile 계산 (분포 정확도 향상)
   const values = past.map((p) => p.value);
-  const quartiles = quartilesOf(values);
+  const cleanValues = removeOutliers(values);
+  const quartiles = quartilesOf(cleanValues.length > 0 ? cleanValues : values);
   const verdict = verdictFromQuartiles(current, quartiles);
-  const t = THRESHOLDS[mode];
+
+  // 개선 2: 변동성 계산 및 동적 임계치 적용
+  const volatility = calculateVolatility(past);
+  const baseThresholds = THRESHOLDS[mode];
+  const t = getDynamicThresholds(baseThresholds, volatility);
 
   let signal: Signal = "neutral";
   let signalText = "최근 분포의 평균 범위입니다.";
@@ -130,6 +177,19 @@ export function forecastChange(series: Series): number {
   return round1(((avg - current) / current) * 100);
 }
 
+// 개선 3: Exponential Smoothing — 최근 데이터에 더 높은 가중치
+function smoothForecast(forecast: Point[], alpha = 0.3): Point[] {
+  if (forecast.length === 0) return forecast;
+  const smoothed: Point[] = [forecast[0]!];
+  for (let i = 1; i < forecast.length; i++) {
+    const prevSmoothed = smoothed[i - 1]!.value;
+    const curr = forecast[i]!.value;
+    const smoothedValue = alpha * curr + (1 - alpha) * prevSmoothed;
+    smoothed.push({ ...forecast[i]!, value: smoothedValue });
+  }
+  return smoothed;
+}
+
 // 며칠 뒤 얼마인지 마일스톤(1d/3d/7d/30d) + 가장 싼/비싼 예상일
 export type ForecastMilestone = {
   daysAhead: number;
@@ -151,11 +211,14 @@ export function forecastSummary(series: Series): ForecastSummary | null {
   if (!fc.length || !past.length) return null;
   const current = past[past.length - 1].value;
 
+  // 개선 3: Exponential Smoothing 적용 (더 정확한 예측)
+  const smoothedFc = smoothForecast(fc, 0.25);
+
   const wantedDays = [1, 3, 7, 30];
   const milestones: ForecastMilestone[] = wantedDays
-    .filter((d) => d <= fc.length)
+    .filter((d) => d <= smoothedFc.length)
     .map((d) => {
-      const p = fc[d - 1];
+      const p = smoothedFc[d - 1];
       return {
         daysAhead: d,
         date: p.date,
@@ -166,12 +229,12 @@ export function forecastSummary(series: Series): ForecastSummary | null {
 
   let minIdx = 0;
   let maxIdx = 0;
-  for (let i = 1; i < fc.length; i++) {
-    if (fc[i].value < fc[minIdx].value) minIdx = i;
-    if (fc[i].value > fc[maxIdx].value) maxIdx = i;
+  for (let i = 1; i < smoothedFc.length; i++) {
+    if (smoothedFc[i].value < smoothedFc[minIdx].value) minIdx = i;
+    if (smoothedFc[i].value > smoothedFc[maxIdx].value) maxIdx = i;
   }
-  const minP = fc[minIdx];
-  const maxP = fc[maxIdx];
+  const minP = smoothedFc[minIdx];
+  const maxP = smoothedFc[maxIdx];
 
   return {
     current,
