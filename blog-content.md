@@ -1,0 +1,593 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - img "프로필이미지" [ref=e5]
+    - heading "양갱의 개발 블로그" [level=1] [ref=e6]:
+      - link "양갱의 개발 블로그" [ref=e7] [cursor=pointer]:
+        - /url: https://gamza1013.tistory.com/
+    - paragraph
+    - generic [ref=e8]:
+      - textbox "검색어를 입력하세요." [ref=e9]
+      - img [ref=e10] [cursor=pointer]
+    - generic [ref=e12]:
+      - paragraph [ref=e13]:
+        - text: 35,564
+        - generic [ref=e14]: 총방문자
+      - paragraph [ref=e15]:
+        - text: "0"
+        - generic [ref=e16]: 오늘
+      - paragraph [ref=e17]:
+        - text: "23"
+        - generic [ref=e18]: 어제
+    - generic [ref=e19]:
+      - link [ref=e20] [cursor=pointer]:
+        - /url: https://gamza1013.tistory.com/manage/
+        - img [ref=e21]
+      - link [ref=e23] [cursor=pointer]:
+        - /url: https://gamza1013.tistory.com/manage/newpost/
+        - img [ref=e24]
+      - link [ref=e26] [cursor=pointer]:
+        - /url: https://github.com/yeonji123
+        - img [ref=e27]
+    - list [ref=e30]:
+      - listitem [ref=e31]:
+        - link "분류 전체보기 (134)" [ref=e32] [cursor=pointer]:
+          - /url: /category
+        - list [ref=e33]:
+          - listitem [ref=e34]:
+            - link "IoT 빅데이터 응용 교육 과정_하계 (18)" [ref=e35] [cursor=pointer]:
+              - /url: /category/IoT%20%EB%B9%85%EB%8D%B0%EC%9D%B4%ED%84%B0%20%EC%9D%91%EC%9A%A9%20%EA%B5%90%EC%9C%A1%20%EA%B3%BC%EC%A0%95_%ED%95%98%EA%B3%84
+          - listitem [ref=e36]:
+            - link "프론트 (47)" [ref=e37] [cursor=pointer]:
+              - /url: /category/%ED%94%84%EB%A1%A0%ED%8A%B8
+            - list [ref=e38]:
+              - listitem [ref=e39]:
+                - link "프론트엔드 (8)" [ref=e40] [cursor=pointer]:
+                  - /url: /category/%ED%94%84%EB%A1%A0%ED%8A%B8/%ED%94%84%EB%A1%A0%ED%8A%B8%EC%97%94%EB%93%9C
+              - listitem [ref=e41]:
+                - link "React Native, React, Expo (34)" [ref=e42] [cursor=pointer]:
+                  - /url: /category/%ED%94%84%EB%A1%A0%ED%8A%B8/React%20Native%2C%20React%2C%20Expo
+              - listitem [ref=e43]:
+                - link "Javascript, Typescript (5)" [ref=e44] [cursor=pointer]:
+                  - /url: /category/%ED%94%84%EB%A1%A0%ED%8A%B8/Javascript%2C%20Typescript
+          - listitem [ref=e45]:
+            - link "백 (49)" [ref=e46] [cursor=pointer]:
+              - /url: /category/%EB%B0%B1
+            - list [ref=e47]:
+              - listitem [ref=e48]:
+                - link "백엔드 (9)" [ref=e49] [cursor=pointer]:
+                  - /url: /category/%EB%B0%B1/%EB%B0%B1%EC%97%94%EB%93%9C
+              - listitem [ref=e50]:
+                - link "Spring, Spring Boot (15)" [ref=e51] [cursor=pointer]:
+                  - /url: /category/%EB%B0%B1/Spring%2C%20%20Spring%20Boot
+              - listitem [ref=e52]:
+                - link "Node.js (5)" [ref=e53] [cursor=pointer]:
+                  - /url: /category/%EB%B0%B1/Node.js
+              - listitem [ref=e54]:
+                - link "Java (10)" [ref=e55] [cursor=pointer]:
+                  - /url: /category/%EB%B0%B1/Java
+              - listitem [ref=e56]:
+                - link "Python (0)" [ref=e57] [cursor=pointer]:
+                  - /url: /category/%EB%B0%B1/Python
+              - listitem [ref=e58]:
+                - link "자료구조 (1)" [ref=e59] [cursor=pointer]:
+                  - /url: /category/%EB%B0%B1/%EC%9E%90%EB%A3%8C%EA%B5%AC%EC%A1%B0
+              - listitem [ref=e60]:
+                - link "DataBase (8)" [ref=e61] [cursor=pointer]:
+                  - /url: /category/%EB%B0%B1/DataBase
+              - listitem [ref=e62]:
+                - link "서버 (1)" [ref=e63] [cursor=pointer]:
+                  - /url: /category/%EB%B0%B1/%EC%84%9C%EB%B2%84
+          - listitem [ref=e64]:
+            - link "코딩테스트 (16)" [ref=e65] [cursor=pointer]:
+              - /url: /category/%EC%BD%94%EB%94%A9%ED%85%8C%EC%8A%A4%ED%8A%B8
+            - list [ref=e66]:
+              - listitem [ref=e67]:
+                - link "프로그래머스 (15)" [ref=e68] [cursor=pointer]:
+                  - /url: /category/%EC%BD%94%EB%94%A9%ED%85%8C%EC%8A%A4%ED%8A%B8/%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%A8%B8%EC%8A%A4
+          - listitem [ref=e69]:
+            - link "아무거나 (4)" [ref=e70] [cursor=pointer]:
+              - /url: /category/%EC%95%84%EB%AC%B4%EA%B1%B0%EB%82%98
+  - generic [ref=e73]:
+    - generic [ref=e74]:
+      - link "프론트/React Native, React, Expo" [ref=e76] [cursor=pointer]:
+        - /url: /category/%ED%94%84%EB%A1%A0%ED%8A%B8/React%20Native%2C%20React%2C%20Expo
+      - heading "[Expo] EAS로 Expo 프로젝트 빌드하기 안드로이드 배포파일 만들기 (apk파일) (feat.오류)" [level=2] [ref=e77]:
+        - link "[Expo] EAS로 Expo 프로젝트 빌드하기 안드로이드 배포파일 만들기 (apk파일) (feat.오류)" [ref=e78] [cursor=pointer]:
+          - /url: /134
+      - paragraph [ref=e79]: 연지양갱 ㅣ 2025. 3. 20. 21:06
+    - generic [ref=e80]:
+      - insertion [ref=e83]:
+        - iframe [ref=e86]:
+          - iframe [ref=f4e4]:
+            - generic [ref=f5e3]:
+              - link "아티스트유나이티드" [ref=f5e4] [cursor=pointer]:
+                - /url: https://www.widerplanet.com/information/advertise?lang=ko&s=nVRZT-M6FP4vkfATtHHsbEjWqAtUQGkvnXag81K5sbPQbNhOt6v7368TlhBpniaKlO-cnN3H37-G4CEXXBjXRqxUKa_7fQV7jFZZwPJezlV_R2VfKqqSoC9pyENBM96LVZb-kJVISeN1gQYX1q1-I5qdKTQh6qlEqkKcekGRaT1EGHB1vGPEuDTSIviW7o8utVXCjGvb9jx0aQQ0K2kS5bUK-Y5n-Vq3UaeSG9fYhJfGuch5_dNyXBtfGqxxNkIHbqFW0cDh2A8d7vt26FJ7y2yHezCErgcthGxke9iFHoI2QkadTfFIF6IjjAezq3hZ0kV6J54m2cuvF35bWwiuB7JvUjq-jlInFfyt4lJtKpFozz7jqbYQp76grFfG5Y-tVAQBsSe-I2IudkAXSZoGwVZWCZkscLKYDiQexmt8Nb_yVQrj-O052LAYnfy38_PD3c4pozMN7ofZaLLy_JH_MB7-hmtvp6qZeeZTq1iG_PYVxwM6ocxK71b_lMnQCR9_L19e05sHenwWKXybzn_C1f4qjcT9rZq6h2weDl_3P097qwyWD-YUrXj85M790fy4Od5PXr3wPnlWp3i9WInBYPm42G69GV3ReH7eMddfqm0oV6CeOvmbmQMZs432RYBlpSyJWX8DYgOeR0nOCeqZIC70-L52BciU7OiOFvyoQFAJob0h4FvysAARL1SkgQmhqR8QbIlnc5dBSrEFWLM2hCWyTOmpSRgQjD3HBIUkhyRnxUFuoHarY34cLuDCIo8jfHgc36DZeA1n46fDLCIERKUglgTnQNX5j3p1EibJhWW7I2hautQWmu9Q60ys345kdySnI7kdye9I3ZiwI1kdCX1I9hc0NfQ-oPsVuNaaX0VDszVwWgPcaj8rx02PuLWBrQ1uc380U59N23YTvS3f0yW2ocxOlU7b87sZ6kifAa1vydtJ4K5zJ2rX49uxoRZaLbRbiFvottBpod9CT99_RSyw3wiuF93qQUCb1bf1RCzNBPtmjVV9BYqMJjn5RorgnfKIZjzwTnik4TvwSVjkT3QFBM8ZF921D-rb1hAp0MwDQbXTTGSHiNuQMe5iL6S-j6HP7G0AsRtwPZLPi-uYpg8OJYHhGh8q7o5vqvNNbOHheJrZEdCcJ5MiJ7nx3_8=&p=q1ZKUbJSSjMzTDI0MjNPTDZLNbFMM0u1tDRNM080TUoxNUu1MExTqgUA&qsc=ie6l2y
+              - link "퇴근 후 1시간, 국비지원 법률사무직 취업 준비 현직장에서 이직을 준비하는 가장 현실적이고 빠른 길! 온라인 법률실무 종합반" [ref=f5e7] [cursor=pointer]:
+                - /url: https://altg.widerplanet.com/delivery/ck.php?uk=99a6b93923c04b3d95e1606a6e7a6d7f1781233536100&ui=1&version=n
+                - generic [ref=f5e8]:
+                  - img [ref=f5e10]
+                  - generic [ref=f5e12]:
+                    - term [ref=f5e13]: 퇴근 후 1시간, 국비지원 법률사무직 취업 준비
+                    - definition [ref=f5e14]: 현직장에서 이직을 준비하는 가장 현실적이고 빠른 길! 온라인 법률실무 종합반
+      - generic [ref=e87]:
+        - paragraph [ref=e88]: 안녕하세요 오늘은 저번 포스팅에 이어서 EAS로 Expo 프로젝트를 빌드하는 과정에 대해 알아보려고 합니다!
+        - paragraph [ref=e89]: 창업팀에서 개발을 빨리 해야해서 Expo 프로젝트를 사용하고 빌드 및 배포까지 했어야 했어요.. android는 APK, ios는 testflight로 해야했습니다. EAS로 Expo 프로젝트를 빌드하는걸 하면서 gpt로 했다가 아주 혼났답니다.. 꼭 꼭 expo 문서를 확인하는게 제일 좋습니다!!
+        - paragraph [ref=e90]
+        - separator [ref=e91] [cursor=pointer]
+        - heading "EAS란?" [level=2] [ref=e92]
+        - paragraph [ref=e93]: EAS(Expo Application Services)는 Expo 팀이 만든 Expo 및 React Native 앱을 위한 긴밀하게 통합된 클라우드 서비스 입니다.
+        - paragraph [ref=e94]: 이전에 Expo에 대해서 정리한 내용이 있는데 확인 부탁 드립니다!
+        - paragraph [ref=e95]:
+          - link "https://gamza1013.tistory.com/133" [ref=e96] [cursor=pointer]:
+            - /url: https://gamza1013.tistory.com/133
+        - figure [ref=e97]:
+          - link "[Expo] Expo 앱과 구성 파일, 개발주기에 대하여, EAS(Expo Application Services)란? 오랜만입니다!정말 오랜만에 글을 쓰는 것 같네요! 사실 12월 중순부터 창업팀에 들어가게 되서 많이 바빴습니다.작은 규모의 창업팀에서 기획 단계부터 시작해서 고도화를 했습니다! 원래는 더 gamza1013.tistory.com" [ref=e98] [cursor=pointer]:
+            - /url: https://gamza1013.tistory.com/133
+            - generic [ref=e100]:
+              - paragraph [ref=e101]: "[Expo] Expo 앱과 구성 파일, 개발주기에 대하여, EAS(Expo Application Services)란?"
+              - paragraph [ref=e102]: 오랜만입니다!정말 오랜만에 글을 쓰는 것 같네요! 사실 12월 중순부터 창업팀에 들어가게 되서 많이 바빴습니다.작은 규모의 창업팀에서 기획 단계부터 시작해서 고도화를 했습니다! 원래는 더
+              - paragraph [ref=e103]: gamza1013.tistory.com
+        - paragraph [ref=e104]
+        - paragraph [ref=e105]: 이제 바로 빌드하는 방법에 대해 설명해드리겠습니다! (이미지 캡처를 못해서,, 최대한 해보겠습니다) 먼저 android의 apk파일 생성하는 걸 먼저 작성하고 ios의 ipa파일 생성하는 방법에 대해 업로드 하겠습니다! ios는 ipa 파일을 만들 수 있지만 ipa파일만으로는 배포할 수 없고 App Store이나 Testflight에 업로드하는 방식이 있습니다. 오늘은 ipa 파일까지만 만드는 것을 하고 testflight에 만드는 것은 다음에 포스팅하도록 하겠습니다.
+        - paragraph [ref=e106]
+        - heading "1. Expo 회원 가입, 로그인" [level=2] [ref=e107]
+        - paragraph [ref=e108]:
+          - link "https://expo.dev/" [ref=e109] [cursor=pointer]:
+            - /url: https://expo.dev/
+        - figure [ref=e110]:
+          - link "Expo Expo is an open-source platform for making universal native apps for Android, iOS, and the web with JavaScript and React. expo.dev" [ref=e111] [cursor=pointer]:
+            - /url: https://expo.dev/
+            - generic [ref=e113]:
+              - paragraph [ref=e114]: Expo
+              - paragraph [ref=e115]: Expo is an open-source platform for making universal native apps for Android, iOS, and the web with JavaScript and React.
+              - paragraph [ref=e116]: expo.dev
+        - paragraph [ref=e117]: 위 링크에 접속하여 회원가입, 로그인을 시도해줍니다.
+        - paragraph [ref=e118]
+        - heading "1. 링크 접속해줍니다." [level=4] [ref=e119]
+        - paragraph
+        - figure [ref=e120]:
+          - img [ref=e122] [cursor=pointer]
+        - paragraph
+        - paragraph [ref=e123]
+        - paragraph [ref=e124]
+        - heading "2. Sign Up / Log In을 선택해줍니다." [level=4] [ref=e125]
+        - paragraph
+        - figure [ref=e126]:
+          - img [ref=e128] [cursor=pointer]
+        - figure [ref=e129]:
+          - img [ref=e131] [cursor=pointer]
+        - paragraph
+        - paragraph [ref=e132]
+        - paragraph [ref=e133]
+        - paragraph [ref=e134]
+        - heading "3. 로그인에 성공하면 Dashboard가 있을 텐데 프로젝트, activity 등 모두 비워 있을 겁니다(전 사용하던걸 캡처해서 모자이크 처리 해뒀습니다)" [level=4] [ref=e135]
+        - paragraph
+        - figure [ref=e136]:
+          - img [ref=e138] [cursor=pointer]
+        - paragraph
+        - paragraph [ref=e139]
+        - paragraph [ref=e140]
+        - paragraph [ref=e141]
+        - heading "4. 그리고 Expo 프로젝트가 있겠죠? VSCode로 프로젝트를 열어주세요. 다른 툴로도 가능합니다!" [level=4] [ref=e142]
+        - paragraph [ref=e143]: 만약 프로젝트가 없다면 아래의 명령어를 실행해서 프로젝트를 생성 해주세요
+        - code [ref=e145]: npx create-expo-app my-app(프로젝트이름)
+        - paragraph [ref=e146]
+        - paragraph [ref=e147]
+        - paragraph [ref=e148]
+        - heading "5. EAS를 사용할 수 있도록 패키지를 설치해줘야 합니다." [level=4] [ref=e149]
+        - code [ref=e151]: npm install -g eas-cli
+        - paragraph [ref=e152]
+        - paragraph [ref=e153]
+        - paragraph [ref=e154]
+        - heading "6. EAS에 로그인 해줍니다." [level=4] [ref=e155]
+        - code [ref=e157]: eas login eas whoami // 로그인한 유저의 정보를 알기 위한 명령어
+        - paragraph [ref=e158]: 이 명령어를 실행하면 아이디와 비밀번호를 입력하면 됩니다.
+        - paragraph [ref=e159]: 그리고 이미 로그인 되어 있는 경우에는 'eas whoami' 를 실행하면 됩니다
+        - paragraph [ref=e160]
+        - paragraph [ref=e161]
+        - heading "7. 다음 명령어는 Expo 프로젝트의 EAS build를 구성하기 위한 명령어 입니다." [level=4] [ref=e162]
+        - code [ref=e164]: eas build:configure
+        - paragraph [ref=e165]
+        - paragraph [ref=e166]: 이정도 실행하게 되면 EAS 빌드하기 위한 구성 및 설정이 완료된 것입니다. 이제 프로젝트 내에서 build의 설정 해줘야합니다.
+        - paragraph [ref=e167]
+        - paragraph [ref=e168]: 그러면 프로젝트와 EAS 가상서버와 연결되는데 연결된 내용은
+        - paragraph [ref=e169]: app.json의 하단에 eas 프로젝트 id가 설정될 것입니다.
+        - code [ref=e171]: "{ \"expo\": { \"name\": \"프로젝트이름\", ... \"extra\": { \"router\": { \"origin\": false }, \"eas\": { \"projectId\": \"프로젝트 ID\" } }, \"owner\": \"로그인 유저 정보\" } }"
+        - paragraph [ref=e172]
+        - paragraph [ref=e173]
+        - heading "8. eas.json 파일 확인해야 합니다." [level=4] [ref=e174]
+        - paragraph
+        - figure [ref=e175]:
+          - img [ref=e177] [cursor=pointer]
+        - paragraph
+        - paragraph [ref=e178]: 위 사진은 제일 처음 eas.json을 만들었을 때 작성되어 있던 것들입니다. eas.json을 수정해줘야 합니다.
+        - paragraph [ref=e179]: 그전에!!
+        - paragraph [ref=e180]: development, preview, production이 있습니다. 저는 실제 앱과 비슷했으면 해서 preview나 production을 사용했습니다. 각 차이점은 이전 포스팅 내용에 정리되어 있습니다!
+        - paragraph [ref=e181]: "development : 개발자 도구가 포함되어 있어 앱스토어에 제출되지 않는다(iOS내부 배포용 빌드, 시뮬레이터용 빌드 구분하여 빌드 가능"
+        - paragraph [ref=e182]:
+          - generic [ref=e183]: "preview : 개발자 도구가 포함되어 있지 않음. 프로덕션과 같은 환경에서 앱을 테스트하기 위해 만들어진 것.→ 앱 스토어에 배포하도록 서명되지 않았거나 스토어 배포에 최적화 되지 않은 방식임.(preview=.apk, google play store = .aab 권장)"
+        - paragraph [ref=e184]:
+          - generic [ref=e185]: "production : 일반 대중에게 공개, TestFlight와 같은 스토어에서 진행하는 테스트 프로세스, 프로덕션 빌드는 앱 스토어를 통해 설치해야한다.(Android 에뮬레이터나 기기, iOS 시뮬레이터나 기기에 직접 설치 X), → 스토어에 제출할 때는 .aab. 를 “buildType”: “apk”사용하는 것이 좋음(기본구성)"
+        - paragraph [ref=e186]
+        - paragraph [ref=e187]: 스토어에 배포한다면 production을 하는게 제일 좋습니다.
+        - paragraph [ref=e188]
+        - paragraph [ref=e189]
+        - paragraph [ref=e190]
+        - paragraph [ref=e191]
+        - heading "2. EAS.json 설정하기" [level=2] [ref=e192]
+        - paragraph [ref=e193]: 사실 그냥 빌드하는 거라면 아래의 명령어를 실행하면 됩니다.
+        - code [ref=e195]: eas build --platform android
+        - paragraph [ref=e196]: 하지만 이걸 바로 실행해도 오류야 너무 너무 많았었죠..
+        - paragraph [ref=e197]
+        - paragraph [ref=e198]: 그래서 제가 빌드하면서 생겼던 오류를 정리해보려고 합니다.
+        - paragraph [ref=e199]
+        - paragraph [ref=e200]
+        - paragraph [ref=e201]
+        - heading "2-1. 환경 변수 설정 오류(API 실행 안됨, Event 반응 없음 오류)" [level=4] [ref=e202]
+        - paragraph [ref=e203]: 저는 환경 변수를 사용해서 API를 실행하는 방식으로 했는데 eas.json에 설정하지 않고 빌드하면 아무 Event가 없었습니다.. 설마 했는데 설정하고 빌드하니까 잘 되더라구요. 대신 그냥 코드에 작성하셨더라면 아마 문제가 없을 것 같습니다.
+        - paragraph [ref=e204]
+        - paragraph [ref=e205]: "\"env\"라는 필드를 사용하여 환경변수로 설정한 API 링크를 설정해줘야 합니다."
+        - code [ref=e207]: "{ \"build\": { \"production\": { \"node\": \"16.13.0\", \"env\": { \"API_URL\": \"https://company.com/api\" } }, \"preview\": { \"extends\": \"production\", \"distribution\": \"internal\", \"env\": { \"API_URL\": \"https://staging.company.com/api\" } } } }"
+        - paragraph [ref=e208]:
+          - link "https://docs.expo.dev/build/eas-json/#environment-variables" [ref=e209] [cursor=pointer]:
+            - /url: https://docs.expo.dev/build/eas-json/#environment-variables
+        - figure [ref=e210]:
+          - link "Configure EAS Build with eas.json Learn how a project using EAS services is configured with eas.json. docs.expo.dev" [ref=e211] [cursor=pointer]:
+            - /url: https://docs.expo.dev/build/eas-json/#environment-variables
+            - generic [ref=e213]:
+              - paragraph [ref=e214]: Configure EAS Build with eas.json
+              - paragraph [ref=e215]: Learn how a project using EAS services is configured with eas.json.
+              - paragraph [ref=e216]: docs.expo.dev
+        - paragraph [ref=e217]
+        - heading "2-2. 너무 오래 걸리는 빌드(리소스 클래스 선택)" [level=4] [ref=e218]
+        - paragraph [ref=e219]: 가장 오래 걸리는 빌드는 거의 5시간이 걸렸습니다.. 보통 처음 빌드할 때 그정도 걸렸던 것 같습니다.
+        - paragraph [ref=e220]: 리소스 클래스는 EAS 빌드하면서 사용하는 가상 머신의 리소스 구성(CPU 코어, RAM 크기)입니다. 기본적으로 리소스 클래스는 로 설정되어 있으며 medium, 일반적으로 소규모 및 대규모 프로젝트에 충분합니다. 그러나 프로젝트에 더 강력한 CPU나 더 큰 메모리가 필요하거나 빌드를 더 빨리 완료하려는 경우 large작업자로 전환할 수 있습니다.
+        - paragraph [ref=e221]
+        - code [ref=e223]: "{ \"build\": { \"production\": { \"android\": { \"resourceClass\": \"medium\" }, \"ios\": { \"resourceClass\": \"large\" }, } } }"
+        - paragraph [ref=e224]: (저는 최대한 빨리 됐으면 좋겠어서 둘다 large로 했다가 빌드할 때 로그로 힘들다고 하는게 있어서 둘 다 medium으로 바꿨었습니다..)
+        - paragraph [ref=e225]
+        - paragraph [ref=e226]: 마지막으로 expo 문서에 있는 예외들을 자세하게 확인 할 수 있는데 작성 외 에러가 발생한 거라면 문서 검색을 해보는게 좋을 것 같습니다! 그리고 댓글에도 작성해주시면 저도 같이 찾아볼게요
+        - paragraph [ref=e227]
+        - paragraph [ref=e228]: 최종 저의 eas.json 파일입니다
+        - code [ref=e230]: "{ \"build\": { \"development\": { \"extends\": \"production\", \"developmentClient\": true, \"distribution\": \"internal\" }, \"preview\": { \"env\": { \"EXPO_PUBLIC_API_URL\": \"https://\" }, \"android\": { \"buildType\": \"apk\" } }, \"preview2\": { \"android\": { \"gradleCommand\": \":app:assembleRelease\" } }, \"preview3\": { \"developmentClient\": true }, \"preview4\": { \"distribution\": \"internal\" }, \"production\": { \"node\": \"18.18.0\", \"env\": { \"EXPO_PUBLIC_API_URL\": \"https://\" }, \"autoIncrement\": true, \"android\": { \"resourceClass\": \"medium\" }, \"ios\": { \"resourceClass\": \"medium\" } } }, \"cli\": { \"appVersionSource\": \"remote\" } }"
+        - paragraph [ref=e231]: 이것저것 설정하다가 보니 위와 같이 만들어졌고, preview도 여러개 설정해뒀습니다.
+        - paragraph [ref=e232]: 그리고 안드로이드 빌드할 때 주의 사항을 찾아보다 우연히 알게 되었습니다.
+        - paragraph
+        - figure [ref=e233]:
+          - img [ref=e235] [cursor=pointer]
+        - paragraph
+        - paragraph [ref=e236]: /android/app/src/main/AndroidManifest.xml 파일에서 추가 부탁드립니다
+        - code [ref=e238]: <application ... android:usesCleartextTraffic="true" // <-- 이것을 추가했습니다 ...>
+        - paragraph [ref=e239]:
+          - link "https://velog.io/@dev-smile/React-Native-Expo-%EC%95%88%EB%93%9C%EB%A1%9C%EC%9D%B4%EB%93%9C-APK-%EB%B9%8C%EB%93%9C-%EC%97%AC%EC%A0%95%EA%B8%B0" [ref=e240] [cursor=pointer]:
+            - /url: https://velog.io/@dev-smile/React-Native-Expo-%EC%95%88%EB%93%9C%EB%A1%9C%EC%9D%B4%EB%93%9C-APK-%EB%B9%8C%EB%93%9C-%EC%97%AC%EC%A0%95%EA%B8%B0
+        - figure [ref=e241]:
+          - link "React Native Expo 안드로이드 APK 빌드 여정기 RN Expo apk 좌충우돌 빌드 여정기 velog.io" [ref=e242] [cursor=pointer]:
+            - /url: https://velog.io/@dev-smile/React-Native-Expo-%EC%95%88%EB%93%9C%EB%A1%9C%EC%9D%B4%EB%93%9C-APK-%EB%B9%8C%EB%93%9C-%EC%97%AC%EC%A0%95%EA%B8%B0
+            - generic [ref=e244]:
+              - paragraph [ref=e245]: React Native Expo 안드로이드 APK 빌드 여정기
+              - paragraph [ref=e246]: RN Expo apk 좌충우돌 빌드 여정기
+              - paragraph [ref=e247]: velog.io
+        - paragraph [ref=e248]: 자세한 내용은 위 블로그를 참고해주세요 덕분에 잘 마무리 됐습니다 감사합니다!
+        - paragraph [ref=e249]
+        - paragraph [ref=e250]
+        - paragraph [ref=e251]
+        - paragraph [ref=e252]
+        - paragraph [ref=e253]
+        - paragraph [ref=e254]
+        - paragraph [ref=e255]
+        - heading "3. Expo 프로젝트 안드로이드 APK파일 만들기" [level=2] [ref=e256]
+        - paragraph [ref=e257]
+        - paragraph [ref=e258]: 저는 APK 파일을 만들때 prebuild 명령어를 실행했는데 오류가 많아서 EAS로 갈아탔었습니다. EAS로 했을 때 기본 영상을 보면서 했던 것 같습니다. 영어로 되어 있긴 한데 영포자라.. 좀 오래 걸렸습니다
+        - paragraph [ref=e259]:
+          - link "https://www.youtube.com/watch?v=nxlt8uwqhpE" [ref=e260] [cursor=pointer]:
+            - /url: https://www.youtube.com/watch?v=nxlt8uwqhpE
+        - figure [ref=e261]:
+          - iframe [ref=e263]:
+            - generic [active] [ref=f2e1]:
+              - generic "YouTube 동영상 플레이어" [ref=f2e3]
+              - generic [ref=f2e5]:
+                - generic:
+                  - generic:
+                    - button "동영상 재생" [ref=f2e10] [cursor=pointer]
+                    - button "재생 컨트롤 숨기기" [ref=f2e12] [cursor=pointer]
+                    - generic [ref=f2e14]:
+                      - generic [ref=f2e19]:
+                        - generic [ref=f2e20]:
+                          - link "How to create a production build for Android | EAS Tutorial" [ref=f2e21] [cursor=pointer]:
+                            - /url: https://www.youtube.com/watch?v=nxlt8uwqhpE
+                          - link "Expo" [ref=f2e22] [cursor=pointer]:
+                            - /url: /channel/UCx_YiR733cfqVPRsQ1n8Fag
+                            - generic [ref=f2e23]: Expo
+                        - generic [ref=f2e24]:
+                          - button [ref=f2e25] [cursor=pointer]
+                          - generic [ref=f2e26]:
+                            - generic [ref=f2e27]:
+                              - generic: Expo
+                              - generic: 구독자 5.24만명
+                            - generic [ref=f2e35]:
+                              - generic [ref=f2e36]:
+                                - generic:
+                                  - generic:
+                                    - img
+                                - button "구독" [ref=f2e39] [cursor=pointer]:
+                                  - generic [ref=f2e40]: 구독
+                              - generic:
+                                - generic:
+                                  - img
+                      - generic [ref=f2e44]:
+                        - generic [ref=f2e45]:
+                          - button "공유" [ref=f2e47] [cursor=pointer]:
+                            - generic [ref=f2e51]:
+                              - img
+                          - button "나중에 볼 동영상" [ref=f2e56] [cursor=pointer]:
+                            - generic [ref=f2e60]:
+                              - img
+                        - link "YouTube에서 보기" [ref=f2e67] [cursor=pointer]:
+                          - /url: https://www.youtube.com/watch?v=nxlt8uwqhpE
+                          - generic [ref=f2e70]:
+                            - text: "다음에서 보기:"
+                            - img [ref=f2e72]:
+                              - generic [ref=f2e74]:
+                                - img
+        - paragraph [ref=e264]
+        - paragraph [ref=e265]: 이어서 APK 파일을 생성해보겠습니다.
+        - paragraph [ref=e266]
+        - paragraph [ref=e267]: 저는 안정적이게 preview를 빌드했습니다. production으로는 Google Play Store에는 안하기 때문에 preview를 사용했습니다.
+        - code [ref=e269]: eas build -p android --profile preview
+        - paragraph [ref=e270]
+        - paragraph [ref=e271]
+        - paragraph [ref=e272]: 아무 문제가 없다면 바로 빌드가 됩니다.
+        - paragraph [ref=e273]: 해당 진행된 상황은 expo.dev에서 확인할 수 있답니다. 진행 상황, 오류 사항 등 확인할 수 있습니다.
+        - paragraph [ref=e274]: 빌드에 성공하면 캡처는 못했지만 apk 파일 링크가 생성되고
+        - paragraph [ref=e275]: 정상적으로 처리되었다면 아래의 이미지와 동일합니다.
+        - paragraph
+        - figure [ref=e276]:
+          - img [ref=e278] [cursor=pointer]
+        - paragraph
+        - paragraph [ref=e279]
+        - paragraph [ref=e280]: 하지만 여기에서 오류가 많이 발생했었는데 라이브러리 문제, gradle 문제 등이 있었습니다. 에러 사항들은 목록을 보면서 처리해보려고 합니다! (처음에는 prebuild했던 것에서 오류가 생겨서,, 한 계정은 거의 빌드 가능한 사양을 모두 다 사용했었답니다..)
+        - paragraph [ref=e281]
+        - paragraph [ref=e282]
+        - 'heading "1. Build failed: We''ve lost connection to the worker. Two common reasons: 1. Worker ran out of memory. Try running your build on a large worker. Learn more at https://docs.expo.dev/build/eas-json/#selecting-resource-class 2. Worker experienced a network issue. This is most likely an intermittent problem. Try running the build again." [level=4] [ref=e283]':
+          - text: "1."
+          - generic [ref=e284]:
+            - text: "Build failed: We've lost connection to the worker. Two common reasons: 1. Worker ran out of memory. Try running your build on a large worker. Learn more at"
+            - link "https://docs.expo.dev/build/eas-json/#selecting-resource-class" [ref=e285] [cursor=pointer]:
+              - /url: https://docs.expo.dev/build/eas-json/#selecting-resource-class
+            - text: 2. Worker experienced a network issue. This is most likely an intermittent problem. Try running the build again.
+        - paragraph
+        - figure [ref=e286]:
+          - img [ref=e288] [cursor=pointer]
+        - paragraph
+        - paragraph [ref=e289]: 이 에러는 gradlew를 실행하면서 너무 오래걸려서 타임 아웃이 걸린 것처럼 연결이 끊긴겁니다.
+        - paragraph [ref=e290]: 1번은 위에 설명 드렸던 리소스 클래스를 설정하라는 에러이고 eas.json의 large, medium 처리 했던 부분을 수정해주면 됩니다. 아래의 링크를 확인해서 수정해주시면 됩니다.
+        - paragraph [ref=e291]:
+          - link "https://docs.expo.dev/build/eas-json/#selecting-resource-class" [ref=e292] [cursor=pointer]:
+            - /url: https://docs.expo.dev/build/eas-json/#selecting-resource-class
+        - figure [ref=e293]:
+          - link "Configure EAS Build with eas.json Learn how a project using EAS services is configured with eas.json. docs.expo.dev" [ref=e294] [cursor=pointer]:
+            - /url: https://docs.expo.dev/build/eas-json/#selecting-resource-class
+            - generic [ref=e296]:
+              - paragraph [ref=e297]: Configure EAS Build with eas.json
+              - paragraph [ref=e298]: Learn how a project using EAS services is configured with eas.json.
+              - paragraph [ref=e299]: docs.expo.dev
+        - paragraph [ref=e300]: 2번은 네트워크 이슈때문에 다시 빌드해보라는 뜻입니다
+        - paragraph [ref=e301]
+        - paragraph [ref=e302]: 리소스 클래스를 수정하고 또 빌드했을 때 오류 발생을 적게 하기 위해서 2번 내용도 찾아봤는데 라이브러리가 너무 많거나 그러면 발생가능한 오류입니다. 그래서 라이브러리를 정리하는 명령어를 실행했었습니다.
+        - paragraph [ref=e303]: 아 그리고!!!!
+        - paragraph [ref=e304]: 그래도 계속 같은 오류가 발생하면 약간 eas 서비스를 자주 사용해서 그런 것같아서 좀 시간이 지난 후에 하니까 잘되더라구요.. 낮에는 잘 안하고 밤이나 새벽에 하니까 잘 됐어요!
+        - paragraph [ref=e305]
+        - paragraph [ref=e306]
+        - paragraph [ref=e307]: 1. 라이브러리 재설치 or 최신화
+        - paragraph [ref=e308]: 2. expo doctor로 라이브러리 검사
+        - code [ref=e310]: rm -rf node_moduls // 바로 전체 삭제되니까 주의해야합니다! npm install npx expo-doctor
+        - paragraph [ref=e311]
+        - paragraph [ref=e312]: 이렇게 일단 빌드를 했는데 다른 오류가 발생했었습니다!
+        - paragraph [ref=e313]: "Failed to read the app config from the project using \"npx expo config\" command: npx expo config --json exited with non-zero code: 1. Falling back to the version of \"@expo/config\" shipped with the EAS CLI. Failed to resolve plugin for module \"expo-build-properties\" relative to \"/경로/경로/경로/...\""
+        - paragraph [ref=e314]: 위 에러를 해석해보면 앱의 경로를 읽는 데에 실패했다는 에러 사항입니다. "expo-build-properties"를 읽을 수 없었다는 겁니다.
+        - paragraph [ref=e315]: 1. app.json 에서 expo-propertise 삭제
+        - paragraph [ref=e316]: 2. 다음 명령어 실행하여 튀고 있는 metro를 수정
+        - code [ref=e318]: pm ls metro
+        - paragraph [ref=e319]: 저는 아래와 같은 오류가 발생했었습니다.
+        - code [ref=e321]: "mvp_app@1.0.0 /Users/경로/경로/... └─┬ react-native@0.76.5 invalid: \"0.76.7\" from the root project └─┬ @react-native/community-cli-plugin@0.76.5 ├─┬ metro-config@0.81.1 │ └── metro@0.81.1 deduped └─┬ metro@0.81.1 └─┬ metro-transform-worker@0.81.1 └── metro@0.81.1 deduped"
+        - paragraph [ref=e322]: 일단 @react-native/community-cli-plugin@0.76.5의 에러기 때문에 react native의 버전을 "0.76.7"로 버전 업해줬습니다.
+        - paragraph [ref=e323]: 참고했던 자료가 있었는데 지금은 안보이네요,,
+        - paragraph [ref=e324]: 다른 오류가 생길 수도 있으니까 댓글로 남겨주시면 저도 함께 찾아보겠습니다! 그리고 각 에러 발생한 것들은 각 하나씩 자세하게 알아본 뒤에 포스팅 해야 겠네요..!
+        - paragraph [ref=e325]
+        - paragraph [ref=e326]
+        - 'heading "2. Build failed: Gradle build failed with unknown error. See logs for the \"Run gradlew\" phase for more information." [level=4] [ref=e327]'
+        - paragraph
+        - figure [ref=e328]:
+          - img [ref=e330] [cursor=pointer]
+        - paragraph
+        - paragraph [ref=e331]: Run gradlew에서 오류가 많이 났었습니다..
+        - paragraph [ref=e332]: 이 에러는 Execution failed for task ':expo-modules-core:compileReleaseKotlin'. 이게 문제의 요점입니다.
+        - paragraph [ref=e333]: 이문제도 node_module과 package-lock.json을 삭제하거나 재설치하면 해결됐던 것 같습니다.
+        - code [ref=e335]: rm -rf node_module rm -rf package-lock npx expo install --check -> y
+        - paragraph [ref=e336]
+        - heading "3. Execution failed for task ':app:processReleaseGoogleServices'.907> No matching client found for package name 'com.moobean.mvp_app' in /home/expo/workingdir/build/mvp_app/android/app/google-services.json" [level=4] [ref=e337]
+        - paragraph [ref=e338]
+        - paragraph [ref=e339]: 이건 푸시 알림 설정을 위해서 구글 firebase를 사용한 google-service.json 파일을 못읽겠다는 에러입니다. 이건 다음에 푸시알림 설정하는 포스팅을 진행하겠습니다. 푸시 알림 설정 포스팅에서 자세하게 설명할 텐데 아래의 명령어를 실행하면 됐답니다..!
+        - code [ref=e341]: npx expo install expo-notifications expo-device expo-constants
+        - paragraph [ref=e342]
+        - paragraph [ref=e343]: 이런 에러가 가장 많이 발생했었고 결국 계정 3개를 만들어서 겨우 재시간에 성공했습니다.
+        - paragraph [ref=e344]: 위 에러 사항이 아니라 다른 에러가 발생하셨으면 댓글로 말씀해주시면 저도 같이 찾아보겠습니다!
+        - paragraph [ref=e345]
+        - paragraph [ref=e346]
+        - separator [ref=e347] [cursor=pointer]
+        - heading "마무리" [level=2] [ref=e348]
+        - paragraph [ref=e349]: 오늘은 EAS를 사용하여 Expo 프로젝트를 빌드해봤습니다. EAS를 사용하여 apk와 ipa를 만들수 있으며 제한 사항이 많은 ios는 Apple development에서 해야할 것들도 자동으로 할 수 있도록 EAS의 프로세스가 계속해서 확장되고 성장하고 있다는 점에서 본받고 싶고, 너무 편한 기능이었습니다. 한달에 가능한 빌드 제한이 있지만 창업 계획 때문에 계정은 여러개 만들었다는 것은 못본척 해주세요ㅎㅎ... 아무튼 오늘 뒤죽 박죽이지만 eas로 빌드해보는 것을 알아봤는데 다시 정리할 수 있는 경험이었습니다. 얉은 지식이지만 기록이라도 하자는 마인드입니다! 빨리 취업할 수 있기를..
+        - paragraph [ref=e350]
+      - insertion [ref=e353]:
+        - iframe [ref=e356]:
+          - iframe [ref=f6e4]:
+            - generic [ref=f7e2]:
+              - link "About ArtistUnited" [ref=f7e3] [cursor=pointer]:
+                - /url: https://www.widerplanet.com/information/advertise?lang=ko&s=nVRZT-M6FP4vkfATtN6yIVmjTikUSukUaAfxUjmxk4Zmw043ru5_HycsIdI8TRQp3zk5u4-__ywlI6mkss6tdVWV-rzfr1BP8G0WiryXy6q_4bqvK14lYV_zSEaKZ7K3rrL0h96qlDVeJ2Rwgi_NG_PsjSOISK9KdFWoYy8sMqNHhAJZHa4Fs06ttAi_pfurS22VCOucuhTDUyvkWcmTOK9VxLV9VOtW1bGUxgSiU-utyGX9EzuuTU8t0ThbyHcRJbYUnnAECnHoiyi0I-lS24c4gMj1ECbEJo7r-L7vOQj7Vp2tkrEpxES4GNydrV_u4ZLMyMNxt0vn8qm2UNIMZNekdHxsI-qemkm-bqWuVluVGM--kKmxUMe-4qJXrssfga4YAmrHgnUcqjgGpkjWNAgCvU3YKAzmT85Pf5vD4pYSoun2ohjz4DKdPc6vsrPJcXm1GF9PXiN1N9q8xN7V8GaIRsOHeOrPk-W0eBuMjpnI-Gsyeqv8hVyungfDYyoXj45DyoQvi7PxLcqipXq0r57DyWIyqCiPL9HVuJh7nk5_eRcvN8_50BvIZP9LJDcHISfL36PUh2QabFb-6P42GF6in0-LJ1fY4ctY-9sHd3zI7B3egHrq7F9mDvRarIyvDURW6pLB-huaUEDmcZJLRnoQrAszv69lATplG77hhTxUINwqVacGMmCTexDLoooNgAhB84AwYBHhmEDuuBiIZm-YSHSZ8mOTMWSUeg4EhWb7JBfFXq-QcatjfpwukAqz6ZDupxcjNLu4tu8e4-NszhiIS8WwBm9hfbjyYHYnEZqdYNsdIohNqS2E79DoIDVvR7I7ktOR3I7kd6RuTNSRcEciH5L9BaGB3gd0vwLXWvhVNIKtgdMa0Fb7WTlteqStDWptaJv7o5n6bNq2m-ht-Z4psQ0FO1U6bc_vZqQjfQbE35K3k6Bd507Urse3YyMtxC20W0hb6LbQaaHfQs8QQMUw2K2UNJuOewjwZvepiwlyfbBr1riq70CR8SRn31gRvHMeM5QH3hmPNYQHPhmL_Y2vgJK5kKq79qHxfWdSYKgHge2GyaAu1bG9iEYUBZQjgUNP-pEfIISFaG8u9AjYl2yTLvQizmxl3y1-J-tglq_XeA4M6emkyFlu_f8H&p=q1ZKUbJSMrQ0NzQxNk1NsUgxSzFMNkq2TElLNk1LNTcxtTQwSjJQqgUA&qsc=1nyopwn
+                - img "About ArtistUnited" [ref=f7e4]
+              - link "ad" [ref=f7e9] [cursor=pointer]:
+                - /url: https://altg.widerplanet.com/delivery/ck.php?uk=bbb52f8633cb40f4888a7238b9ca51b81781233536153&ui=1&version=n
+                - img "ad" [ref=f7e10]
+      - insertion [ref=e357]
+      - generic [ref=e359]:
+        - generic [ref=e360]:
+          - button "좋아요 3" [ref=e362] [cursor=pointer]:
+            - generic [ref=e363]:
+              - generic [ref=e364]: 좋아요
+              - generic [ref=e365]: "3"
+          - button "공유하기" [ref=e367] [cursor=pointer]:
+            - generic [ref=e368]: 공유하기
+          - button "게시글 관리" [ref=e370] [cursor=pointer]:
+            - generic [ref=e371]: 게시글 관리
+        - button "구독하기" [ref=e372] [cursor=pointer]:
+          - emphasis [ref=e373]: 구독하기
+        - link "저작자표시 비영리 변경금지 (새창열림)" [ref=e375] [cursor=pointer]:
+          - /url: https://creativecommons.org/licenses/by-nc-nd/4.0/deed.ko
+          - generic [ref=e376]:
+            - generic [ref=e377]: 저작자표시
+            - generic [ref=e378]: 비영리
+            - generic [ref=e379]: 변경금지
+          - generic: (새창열림)
+      - generic [ref=e380]:
+        - link "app:processreleasegoogleservices" [ref=e381] [cursor=pointer]:
+          - /url: /tag/app%3Aprocessreleasegoogleservices
+        - text: ","
+        - link "eas" [ref=e382] [cursor=pointer]:
+          - /url: /tag/eas
+        - text: ","
+        - link "expo" [ref=e383] [cursor=pointer]:
+          - /url: /tag/expo
+        - text: ","
+        - link "expo-modules-core:compilereleasekotlin" [ref=e384] [cursor=pointer]:
+          - /url: /tag/expo-modules-core%3Acompilereleasekotlin
+        - text: ","
+        - link "gradlew" [ref=e385] [cursor=pointer]:
+          - /url: /tag/gradlew
+        - text: ","
+        - link "React Native" [ref=e386] [cursor=pointer]:
+          - /url: /tag/React%20Native
+        - text: ","
+        - link "모바일 앱 구현" [ref=e387] [cursor=pointer]:
+          - /url: /tag/%EB%AA%A8%EB%B0%94%EC%9D%BC%20%EC%95%B1%20%EA%B5%AC%ED%98%84
+        - text: ","
+        - link "빌드" [ref=e388] [cursor=pointer]:
+          - /url: /tag/%EB%B9%8C%EB%93%9C
+        - text: ","
+        - link "안드로이드 apk 파일" [ref=e389] [cursor=pointer]:
+          - /url: /tag/%EC%95%88%EB%93%9C%EB%A1%9C%EC%9D%B4%EB%93%9C%20apk%20%ED%8C%8C%EC%9D%BC
+        - text: ","
+        - link "에러 수정" [ref=e390] [cursor=pointer]:
+          - /url: /tag/%EC%97%90%EB%9F%AC%20%EC%88%98%EC%A0%95
+      - generic [ref=e391]:
+        - paragraph [ref=e392] [cursor=pointer]: EAS란?
+        - paragraph [ref=e393] [cursor=pointer]: 1. Expo 회원 가입, 로그인
+        - paragraph [ref=e394] [cursor=pointer]: 1. 링크 접속해줍니다.
+        - paragraph [ref=e395] [cursor=pointer]: 2. Sign Up / Log In을 선택해줍니다.
+        - paragraph [ref=e396] [cursor=pointer]: 3. 로그인에 성공하면 Dashboard가 있을 텐데 프로젝트, activity 등 모두 비워 있을 겁니다(전 사용하던걸 캡처해서 모자이크 처리 해뒀습니다)
+        - paragraph [ref=e397] [cursor=pointer]: 4. 그리고 Expo 프로젝트가 있겠죠? VSCode로 프로젝트를 열어주세요. 다른 툴로도 가능합니다!
+        - paragraph [ref=e398] [cursor=pointer]: 5. EAS를 사용할 수 있도록 패키지를 설치해줘야 합니다.
+        - paragraph [ref=e399] [cursor=pointer]: 6. EAS에 로그인 해줍니다.
+        - paragraph [ref=e400] [cursor=pointer]: 7. 다음 명령어는 Expo 프로젝트의 EAS build를 구성하기 위한 명령어 입니다.
+        - paragraph [ref=e401] [cursor=pointer]: 8. eas.json 파일 확인해야 합니다.
+        - paragraph [ref=e402] [cursor=pointer]: 2. EAS.json 설정하기
+        - paragraph [ref=e403] [cursor=pointer]: 2-1. 환경 변수 설정 오류(API 실행 안됨, Event 반응 없음 오류)
+        - paragraph [ref=e404] [cursor=pointer]: 2-2. 너무 오래 걸리는 빌드(리소스 클래스 선택)
+        - paragraph [ref=e405] [cursor=pointer]: 3. Expo 프로젝트 안드로이드 APK파일 만들기
+        - paragraph [ref=e406] [cursor=pointer]: "1. Build failed: We've lost connection to the worker. Two common reasons: 1. Worker ran out of memory. Try running your build on a large worker. Learn more at https://docs.expo.dev/build/eas-json/#selecting-resource-class 2. Worker experienced a network issue. This is most likely an intermittent problem. Try running the build again."
+        - paragraph [ref=e407] [cursor=pointer]: "2. Build failed: Gradle build failed with unknown error. See logs for the \"Run gradlew\" phase for more information."
+        - paragraph [ref=e408] [cursor=pointer]: 3. Execution failed for task ':app:processReleaseGoogleServices'.907> No matching client found for package name 'com.moobean.mvp_app' in /home/expo/workingdir/build/mvp_app/android/app/google-services.json
+        - paragraph [ref=e409] [cursor=pointer]: 마무리
+    - generic [ref=e411]:
+      - generic [ref=e412]:
+        - link "양갱의 개발 블로그" [ref=e413] [cursor=pointer]:
+          - /url: https://gamza1013.tistory.com
+        - link "연지양갱 님의 블로그입니다." [ref=e414] [cursor=pointer]:
+          - /url: https://gamza1013.tistory.com
+        - button "구독하기" [ref=e415] [cursor=pointer]:
+          - generic [ref=e416]: 구독하기
+      - link [ref=e418] [cursor=pointer]:
+        - /url: https://gamza1013.tistory.com
+    - generic [ref=e420]:
+      - heading "댓글달기" [level=3] [ref=e422]: 댓글달기
+      - generic [ref=e424]:
+        - paragraph [ref=e425]:
+          - textbox "이름" [ref=e426]
+        - paragraph [ref=e427]:
+          - textbox "비밀번호" [ref=e428]
+        - paragraph [ref=e429]:
+          - textbox "댓글을 달아주세요 :)" [ref=e430]
+        - paragraph [ref=e431]:
+          - button "댓글 달기" [ref=e432]
+        - paragraph [ref=e433]:
+          - checkbox "비밀글" [ref=e434]
+          - text: 비밀글
+      - list [ref=e437]:
+        - listitem [ref=e438]:
+          - generic [ref=e441]:
+            - paragraph [ref=e442]:
+              - link "약선" [ref=e443] [cursor=pointer]:
+                - /url: https://thankyoufood.tistory.com
+            - paragraph [ref=e445]: 오늘도 유익한 내용 잘 보았습니다. 행복한 하루 되시길 바랍니다!
+            - generic [ref=e446]:
+              - text: 2025.03.20 22:05
+              - link "신고" [ref=e447] [cursor=pointer]:
+                - /url: /toolbar/popup/abuseReport/?entryId=134&commentId=20274103
+            - generic [ref=e448]:
+              - link "수정/삭제" [ref=e449] [cursor=pointer]:
+                - /url: "#"
+              - link "댓글쓰기" [ref=e450] [cursor=pointer]:
+                - /url: "#"
+        - listitem [ref=e451]:
+          - generic [ref=e454]:
+            - paragraph [ref=e455]:
+              - link "잡소" [ref=e456] [cursor=pointer]:
+                - /url: https://aboutautomobile.tistory.com
+            - paragraph [ref=e458]: 봄이 오는것 같다가 갑자기 다시 추워졌어요! 건강 유의하시고 오늘도 행복하세요! 잘 보고 갑니다!
+            - generic [ref=e459]:
+              - text: 2025.03.21 08:57
+              - link "신고" [ref=e460] [cursor=pointer]:
+                - /url: /toolbar/popup/abuseReport/?entryId=134&commentId=20278227
+            - generic [ref=e461]:
+              - link "수정/삭제" [ref=e462] [cursor=pointer]:
+                - /url: "#"
+              - link "댓글쓰기" [ref=e463] [cursor=pointer]:
+                - /url: "#"
+        - listitem [ref=e464]:
+          - generic [ref=e467]:
+            - paragraph [ref=e468]:
+              - link "쓰소미" [ref=e469] [cursor=pointer]:
+                - /url: https://handclick.tistory.com
+            - paragraph [ref=e471]: 포스팅 잘 보고 공감 누르고 갑니다😊
+            - generic [ref=e472]:
+              - text: 2025.03.21 15:29
+              - link "신고" [ref=e473] [cursor=pointer]:
+                - /url: /toolbar/popup/abuseReport/?entryId=134&commentId=20282917
+            - generic [ref=e474]:
+              - link "수정/삭제" [ref=e475] [cursor=pointer]:
+                - /url: "#"
+              - link "댓글쓰기" [ref=e476] [cursor=pointer]:
+                - /url: "#"
+    - generic [ref=e477]:
+      - strong [ref=e478]: 프론트/React Native, React, Expo 다른글
+      - list [ref=e479]:
+        - listitem [ref=e480]:
+          - link "[React Native] Expo 프레임워크 사용하지 않고 React Native 프로젝트 생성하기 2025.05.18" [ref=e481] [cursor=pointer]:
+            - /url: /140?category=1103081
+            - generic [ref=e482]: "[React Native] Expo 프레임워크 사용하지 않고 React Native 프로젝트 생성하기"
+            - generic [ref=e483]: 2025.05.18
+        - listitem [ref=e484]:
+          - link "[Expo] Expo 앱과 구성 파일, 개발주기에 대하여, EAS(Expo Application Services)란? 2025.03.19" [ref=e485] [cursor=pointer]:
+            - /url: /133?category=1103081
+            - generic [ref=e486]: "[Expo] Expo 앱과 구성 파일, 개발주기에 대하여, EAS(Expo Application Services)란?"
+            - generic [ref=e487]: 2025.03.19
+        - listitem [ref=e488]:
+          - link "[React] 리액트 form 태그 라이브러리 사용하여 회원가입 구현 react-hook-form 사용하기 2024.11.24" [ref=e489] [cursor=pointer]:
+            - /url: /129?category=1103081
+            - generic [ref=e490]: "[React] 리액트 form 태그 라이브러리 사용하여 회원가입 구현 react-hook-form 사용하기"
+            - generic [ref=e491]: 2024.11.24
+        - listitem [ref=e492]:
+          - link "[오픈소스] React 프로젝트에서 사용할 만한 오픈소스와 라이브러리 10가지 2024.11.13" [ref=e493] [cursor=pointer]:
+            - /url: /121?category=1103081
+            - generic [ref=e494]: "[오픈소스] React 프로젝트에서 사용할 만한 오픈소스와 라이브러리 10가지"
+            - generic [ref=e495]: 2024.11.13
