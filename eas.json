@@ -20,9 +20,7 @@
       "distribution": "internal",
       "channel": "preview",
       "environment": "preview",
-      "node": {
-        "version": "24.16.0"
-      },
+      "node": "24.16.0",
       "ios": {
         "resourceClass": "m-medium"
       },
