@@ -32,4 +32,4 @@ COPY . .
 
 RUN npm ci --legacy-peer-deps
 
-ENTRYPOINT ["bash", "-c", "npx expo prebuild --clean --platform android --yes && cd android && ./gradlew assembleRelease && ls -lh app/build/outputs/apk/release/*.apk"]
+ENTRYPOINT ["bash", "-c", "npx expo prebuild --clean --platform android --yes && cd android && ./gradlew bundleRelease && ls -lh app/build/outputs/bundle/release/*.aab"]
