@@ -4,9 +4,14 @@ dist/
 web-build/
 
 # EAS
-android/
 ios/
 .eas/
+
+# Android native build (committed for local builds)
+android/build/
+android/.gradle/
+android/.idea/
+android/*.iml
 
 # Native
 *.orig.*
