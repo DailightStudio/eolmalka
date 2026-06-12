@@ -36,25 +36,24 @@ function removeOutliers(values: number[]): number[] {
   return values.filter((v) => v >= lower && v <= upper);
 }
 
-// 개선 2: 변동성 계산 (ATR 기반) — 시장 변동성에 맞춰 임계치 동적 조정
-function calculateVolatility(past: Point[]): number {
+// 개선 2: 변동성 계산 — 일일 종가 간 절대 변동폭 평균 기반.
+// (데이터에 고저가가 없어 ATR이 아닌 |close - prevClose| 평균으로 계산)
+function calculateAbsoluteChangeVolatility(past: Point[]): number {
   if (past.length < 2) return 0;
-  let trSum = 0;
+  let changeSum = 0;
   for (let i = 1; i < Math.min(past.length, 30); i++) {
-    const h = past[i].value;
-    const l = past[i].value; // 일일 고저가 없으므로 현재가 기준
-    const pc = past[i - 1].value;
-    const tr = Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc));
-    trSum += tr;
+    changeSum += Math.abs(past[i].value - past[i - 1].value);
   }
   const period = Math.min(past.length - 1, 30);
-  const atr = trSum / period;
-  return (atr / past[past.length - 1].value) * 100; // ATR을 백분율로
+  const avgChange = changeSum / period;
+  return (avgChange / past[past.length - 1].value) * 100; // 평균 변동폭을 백분율로
 }
 
 // 개선 3: 동적 임계치 계산 — 변동성 기반으로 base 임계치 조정
 function getDynamicThresholds(baseThresholds: SignalThresholds, volatility: number): SignalThresholds {
-  const volFactor = Math.max(0.7, Math.min(1.5, 1 + volatility / 10)); // 변동성 30% 범위 내 조정
+  const baselineVolatility = 1.5; // 참고값: 평상시 변동성 기준
+  const volRatio = volatility / baselineVolatility; // 1.0 = 기준, <1 = 저변동, >1 = 고변동
+  const volFactor = Math.max(0.7, Math.min(1.5, 1 + (volRatio - 1) * 0.3)); // 변동성이 절반이면 factor = 0.9, 2배면 1.3
   return {
     buyDropPct: baseThresholds.buyDropPct * volFactor,
     waitRisePct: baseThresholds.waitRisePct * volFactor,
@@ -105,7 +104,7 @@ export function computeStats(series: Series, mode: SignalMode = "default"): Seri
   const verdict = verdictFromQuartiles(current, quartiles);
 
   // 개선 2: 변동성 계산 및 동적 임계치 적용
-  const volatility = calculateVolatility(past);
+  const volatility = calculateAbsoluteChangeVolatility(past);
   const baseThresholds = THRESHOLDS[mode];
   const t = getDynamicThresholds(baseThresholds, volatility);
 
