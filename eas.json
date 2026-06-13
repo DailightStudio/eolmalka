@@ -32,6 +32,7 @@
       "channel": "production",
       "environment": "production",
       "autoIncrement": true,
+      "node": "20.19.4",
       "ios": {
         "resourceClass": "m-medium"
       },
