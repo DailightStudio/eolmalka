@@ -1,3 +1,11 @@
 const { getDefaultConfig } = require("expo/metro-config");
 
-module.exports = getDefaultConfig(__dirname);
+const config = getDefaultConfig(__dirname);
+
+// metro-cache package exports subpath error workaround
+config.resolver = {
+  ...config.resolver,
+  unstable_enablePackageExports: false,
+};
+
+module.exports = config;
