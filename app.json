@@ -11,7 +11,7 @@
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dailightstudio.eolmalka",
+      "bundleIdentifier": "com.jaylabs.eolmalka",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "UIBackgroundModes": [
@@ -26,7 +26,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0b0f17"
       },
-      "package": "com.dailightstudio.eolmalka",
+      "package": "com.jaylabs.eolmalka",
       "googleServicesFile": "./google-services.json"
     },
     "web": {
@@ -52,17 +52,21 @@
       ],
       "expo-asset",
       "expo-font",
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
       [
         "react-native-google-mobile-ads",
         {
           "androidAppId": "ca-app-pub-3035772295627652~2204214861",
-          "iosAppId": "ca-app-pub-3035772295627652~8377751297",
-          "userTrackingUsageDescription": "더 나은 광고 경험을 위해 광고 식별자를 사용합니다."
+          "iosAppId": "ca-app-pub-3035772295627652~8377751297"
         }
       ],
-      "@react-native-firebase/app",
-      "@react-native-firebase/crashlytics"
+      "./plugins/withAndroidMemory"
     ],
+    "react-native-google-mobile-ads": {
+      "android_app_id": "ca-app-pub-3035772295627652~2204214861",
+      "ios_app_id": "ca-app-pub-3035772295627652~8377751297"
+    },
     "experiments": {
       "typedRoutes": true
     },
@@ -72,9 +76,7 @@
       },
       "router": {}
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/44fe1e40-12c3-4035-be23-b53de1ee4161"
     }
