@@ -1,0 +1,34 @@
+{
+  "project_name": "얼말까 (eolmalka)",
+  "description": "시세 비교/예측 앱 - 환율, 주유비, 항공권, 금 시세",
+  "workspace": "C:\\Users\\Jay-server\\Desktop\\projects\\eolmalka",
+  "build_targets": {
+    "web": {
+      "enabled": true,
+      "deploy_to": "vercel"
+    },
+    "android": {
+      "enabled": true,
+      "deploy_to": "google_play",
+      "package_name": "com.jaylabs.eolmalka",
+      "track": "internal"
+    },
+    "ios": {
+      "enabled": true,
+      "deploy_to": "app_store",
+      "bundle_id": "com.jaylabs.eolmalka",
+      "track": "testflight"
+    }
+  },
+  "metadata": {
+    "name_en": "How Much",
+    "name_ko": "얼말까",
+    "description_en": "Find the best time to buy - Compare exchange rates, fuel prices, flights, and gold prices with predictive insights",
+    "description_ko": "지금이 살 타이밍인가? 환율, 주유비, 항공권, 금 시세를 한눈에 비교하고 예측하는 앱",
+    "category": "Finance",
+    "privacy_policy_url": "https://eolmalka.com/privacy",
+    "support_email": "support@dailightstudio.com"
+  },
+  "version": "0.1.0",
+  "build_number": 1
+}
