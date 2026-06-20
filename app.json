@@ -36,6 +36,15 @@
     "plugins": [
       "expo-router",
       [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "forceStaticLinking": ["RNFBApp", "RNFBAnalytics", "RNFBCrashlytics"]
+          }
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/splash.png",
@@ -62,7 +71,9 @@
         }
       ],
       "./plugins/withAndroidMemory",
-      "./plugins/withAndroidVersionCode"
+      "./plugins/withAndroidVersionCode",
+      "./plugins/withAndroidSigning",
+      "./plugins/withIosNonModularHeaders"
     ],
     "react-native-google-mobile-ads": {
       "android_app_id": "ca-app-pub-3035772295627652~2204214861",
