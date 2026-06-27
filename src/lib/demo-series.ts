@@ -80,31 +80,32 @@ const SYN_PROFILES: Record<string, SyntheticProfile> = {
   "gas-diesel": { base: 1532,  yearlyAmp: 0.07, noiseAmp: 0.004, trend: 0.00, forecastDir: 0.002 },
   "gas-lpg":    { base: 1100,  yearlyAmp: 0.05, noiseAmp: 0.005, trend: 0.00, forecastDir: 0.001 },
   "gold-kr":    { base: 125400, yearlyAmp: 0.08, noiseAmp: 0.006, trend: 0.15, forecastDir: 0.02 },
-  "air-nrt":    { base: 220000, yearlyAmp: 0.18, noiseAmp: 0.025, trend: 0.00, forecastDir: -0.04 },
-  "air-tpe":    { base: 300000, yearlyAmp: 0.20, noiseAmp: 0.030, trend: 0.02, forecastDir:  0.06 },
-  "air-kix":    { base: 190000, yearlyAmp: 0.17, noiseAmp: 0.025, trend: 0.00, forecastDir: -0.03 },
-  "air-fuk":    { base: 210000, yearlyAmp: 0.17, noiseAmp: 0.025, trend: 0.00, forecastDir:  0.02 },
-  "air-cts":    { base: 260000, yearlyAmp: 0.22, noiseAmp: 0.030, trend: 0.00, forecastDir: -0.05 },
-  "air-bkk":    { base: 360000, yearlyAmp: 0.15, noiseAmp: 0.028, trend: 0.01, forecastDir:  0.03 },
-  "air-sin":    { base: 390000, yearlyAmp: 0.13, noiseAmp: 0.025, trend: 0.01, forecastDir:  0.04 },
-  "air-hkg":    { base: 260000, yearlyAmp: 0.16, noiseAmp: 0.028, trend: 0.00, forecastDir:  0.02 },
-  "air-dps":    { base: 430000, yearlyAmp: 0.18, noiseAmp: 0.032, trend: 0.02, forecastDir:  0.05 },
-  "air-cdg":    { base: 900000, yearlyAmp: 0.12, noiseAmp: 0.020, trend: 0.01, forecastDir:  0.02 },
-  "air-lax":    { base: 860000, yearlyAmp: 0.11, noiseAmp: 0.018, trend: 0.01, forecastDir:  0.01 },
-  "air-oka":    { base: 280000, yearlyAmp: 0.20, noiseAmp: 0.028, trend: 0.00, forecastDir: -0.02 },
-  "air-kul":    { base: 400000, yearlyAmp: 0.14, noiseAmp: 0.026, trend: 0.01, forecastDir:  0.03 },
-  "air-sgn":    { base: 380000, yearlyAmp: 0.15, noiseAmp: 0.027, trend: 0.01, forecastDir:  0.03 },
-  "air-han":    { base: 360000, yearlyAmp: 0.15, noiseAmp: 0.027, trend: 0.01, forecastDir:  0.02 },
-  "air-dad":    { base: 340000, yearlyAmp: 0.16, noiseAmp: 0.028, trend: 0.01, forecastDir:  0.02 },
-  "air-mnl":    { base: 350000, yearlyAmp: 0.14, noiseAmp: 0.026, trend: 0.01, forecastDir:  0.03 },
-  "air-cgk":    { base: 480000, yearlyAmp: 0.13, noiseAmp: 0.025, trend: 0.01, forecastDir:  0.03 },
-  "air-pek":    { base: 220000, yearlyAmp: 0.12, noiseAmp: 0.022, trend: 0.00, forecastDir:  0.01 },
-  "air-pvg":    { base: 200000, yearlyAmp: 0.12, noiseAmp: 0.022, trend: 0.00, forecastDir:  0.01 },
-  "air-lhr":    { base: 1100000, yearlyAmp: 0.10, noiseAmp: 0.018, trend: 0.01, forecastDir:  0.02 },
-  "air-syd":    { base: 950000, yearlyAmp: 0.11, noiseAmp: 0.019, trend: 0.01, forecastDir:  0.02 },
-  "air-dxb":    { base: 750000, yearlyAmp: 0.10, noiseAmp: 0.018, trend: 0.01, forecastDir:  0.02 },
-  "air-gum":    { base: 400000, yearlyAmp: 0.18, noiseAmp: 0.028, trend: 0.00, forecastDir: -0.02 },
-  "air-jfk":    { base: 1200000, yearlyAmp: 0.09, noiseAmp: 0.016, trend: 0.01, forecastDir:  0.01 },
+  // 항공권 base: ICN 출발 왕복 1주체류 시세 (Travelpayouts week-matrix, 2026-06 보정). cts·gum은 표본 희박으로 인접노선 비례 추정. 라이브 실패 시 합성 폴백 기준선.
+  "air-nrt":    { base: 330000, yearlyAmp: 0.18, noiseAmp: 0.025, trend: 0.00, forecastDir: -0.04 },
+  "air-tpe":    { base: 310000, yearlyAmp: 0.20, noiseAmp: 0.030, trend: 0.02, forecastDir:  0.06 },
+  "air-kix":    { base: 240000, yearlyAmp: 0.17, noiseAmp: 0.025, trend: 0.00, forecastDir: -0.03 },
+  "air-fuk":    { base: 240000, yearlyAmp: 0.17, noiseAmp: 0.025, trend: 0.00, forecastDir:  0.02 },
+  "air-cts":    { base: 380000, yearlyAmp: 0.22, noiseAmp: 0.030, trend: 0.00, forecastDir: -0.05 },
+  "air-bkk":    { base: 490000, yearlyAmp: 0.15, noiseAmp: 0.028, trend: 0.01, forecastDir:  0.03 },
+  "air-sin":    { base: 440000, yearlyAmp: 0.13, noiseAmp: 0.025, trend: 0.01, forecastDir:  0.04 },
+  "air-hkg":    { base: 340000, yearlyAmp: 0.16, noiseAmp: 0.028, trend: 0.00, forecastDir:  0.02 },
+  "air-dps":    { base: 740000, yearlyAmp: 0.18, noiseAmp: 0.032, trend: 0.02, forecastDir:  0.05 },
+  "air-cdg":    { base: 1080000, yearlyAmp: 0.12, noiseAmp: 0.020, trend: 0.01, forecastDir:  0.02 },
+  "air-lax":    { base: 1450000, yearlyAmp: 0.11, noiseAmp: 0.018, trend: 0.01, forecastDir:  0.01 },
+  "air-oka":    { base: 470000, yearlyAmp: 0.20, noiseAmp: 0.028, trend: 0.00, forecastDir: -0.02 },
+  "air-kul":    { base: 395000, yearlyAmp: 0.14, noiseAmp: 0.026, trend: 0.01, forecastDir:  0.03 },
+  "air-sgn":    { base: 480000, yearlyAmp: 0.15, noiseAmp: 0.027, trend: 0.01, forecastDir:  0.03 },
+  "air-han":    { base: 420000, yearlyAmp: 0.15, noiseAmp: 0.027, trend: 0.01, forecastDir:  0.02 },
+  "air-dad":    { base: 430000, yearlyAmp: 0.16, noiseAmp: 0.028, trend: 0.01, forecastDir:  0.02 },
+  "air-mnl":    { base: 410000, yearlyAmp: 0.14, noiseAmp: 0.026, trend: 0.01, forecastDir:  0.03 },
+  "air-cgk":    { base: 545000, yearlyAmp: 0.13, noiseAmp: 0.025, trend: 0.01, forecastDir:  0.03 },
+  "air-pek":    { base: 420000, yearlyAmp: 0.12, noiseAmp: 0.022, trend: 0.00, forecastDir:  0.01 },
+  "air-pvg":    { base: 445000, yearlyAmp: 0.12, noiseAmp: 0.022, trend: 0.00, forecastDir:  0.01 },
+  "air-lhr":    { base: 1260000, yearlyAmp: 0.10, noiseAmp: 0.018, trend: 0.01, forecastDir:  0.02 },
+  "air-syd":    { base: 960000, yearlyAmp: 0.11, noiseAmp: 0.019, trend: 0.01, forecastDir:  0.02 },
+  "air-dxb":    { base: 860000, yearlyAmp: 0.10, noiseAmp: 0.018, trend: 0.01, forecastDir:  0.02 },
+  "air-gum":    { base: 650000, yearlyAmp: 0.18, noiseAmp: 0.028, trend: 0.00, forecastDir: -0.02 },
+  "air-jfk":    { base: 1300000, yearlyAmp: 0.09, noiseAmp: 0.016, trend: 0.01, forecastDir:  0.01 },
 };
 
 // 환율 슬러그 → Frankfurter base 통화 (fx-XXX 패턴이면 XXX 추출)
@@ -369,8 +370,11 @@ async function getSeriesRaw(slug: string): Promise<Series> {
         fetchedAt: latest.fetchedAt,
       };
     }
-    const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
-    return { slug, past: synPast, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false };
+    // 라이브 실패: 캐시된 실가격(있으면)·없으면 base로 끝점 고정 → 라이브↔폴백 표시가 연속(계절오프셋 점프 제거)
+    const anchor = latest.price > 0 ? latest.price : profile.base;
+    const anchored = scaleToCurrent(synPast, anchor);
+    const forecast = projectForecast(anchored, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+    return { slug, past: anchored, forecast, source: "synthetic", sourceName: "synthetic", pastIsLive: false, fetchedAt: latest.fetchedAt };
   }
 
   // 5) 나머지 — 결정론적 합성

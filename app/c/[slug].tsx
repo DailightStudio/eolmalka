@@ -421,8 +421,8 @@ export default function CategoryScreen() {
           <>
             <Text style={styles.sectionTitle}>🗓️ 다가오는 거시 이벤트 (60일)</Text>
             <View style={styles.evCard}>
-              {events.map((e) => (
-                <View key={e.date + e.type} style={styles.evRow}>
+              {events.map((e, i) => (
+                <View key={`${e.date}-${e.type}-${i}`} style={styles.evRow}>
                   <Text style={styles.evEmoji}>{e.emoji}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.evTitle} numberOfLines={1}>

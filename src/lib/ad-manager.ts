@@ -7,19 +7,23 @@ import {
   RewardedAdEventType,
   TestIds,
 } from "react-native-google-mobile-ads";
+import { USE_TEST_ADS } from "@/lib/ad-config";
 
-const interstitialUnitId =
-  Platform.OS === "android"
+const interstitialUnitId = USE_TEST_ADS
+  ? TestIds.INTERSTITIAL
+  : Platform.OS === "android"
     ? process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID || TestIds.INTERSTITIAL
     : process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS || TestIds.INTERSTITIAL;
 
-const rewardedUnitId =
-  Platform.OS === "android"
+const rewardedUnitId = USE_TEST_ADS
+  ? TestIds.REWARDED
+  : Platform.OS === "android"
     ? process.env.EXPO_PUBLIC_ADMOB_REWARDED_ANDROID || TestIds.REWARDED
     : process.env.EXPO_PUBLIC_ADMOB_REWARDED_IOS || TestIds.REWARDED;
 
-const appOpenUnitId =
-  Platform.OS === "android"
+const appOpenUnitId = USE_TEST_ADS
+  ? TestIds.APP_OPEN
+  : Platform.OS === "android"
     ? process.env.EXPO_PUBLIC_ADMOB_APPOPEN_ANDROID || TestIds.APP_OPEN
     : process.env.EXPO_PUBLIC_ADMOB_APPOPEN_IOS || TestIds.APP_OPEN;
 

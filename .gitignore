@@ -4,22 +4,23 @@ dist/
 web-build/
 
 # EAS
-ios/
 .eas/
 
-# Android native build (committed for local builds)
-android/build/
-android/.gradle/
-android/.idea/
-android/*.iml
+# iOS & Android native (managed/CNG — generated at build time)
+/android/
+/ios/
 
 # Native
 *.orig.*
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
 *.mobileprovision
+
+# Android release signing (절대 커밋 금지 — 비번 분실 시 앱 업데이트 불가)
+/credentials/
 
 # Metro
 .metro-health-check*

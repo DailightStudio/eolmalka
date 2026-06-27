@@ -3,13 +3,15 @@ import { cachedFetch } from "./fetch-cache";
 
 // 환율 데이터 제공자 — dd-trip fx.provider.ts 포팅.
 // 우선순위: Twelve Data(키 있을 때) → Frankfurter(무키·ECB) → 합성 폴백.
+// 시계열 확보 후, 최신 1포인트만 다음 금융(Daum)의 실시간 매매기준율로 덮어쓴다.
+//   (Frankfurter는 ECB 일별 기준환율이라 네이버/다음이 보여주는 시장 매매기준율과 살짝 다름)
 // `live` = 실데이터 fetch 성공 여부 (키 유무가 아님).
 // Expo: process.env.EXPO_PUBLIC_* 만 클라이언트 번들에 박힌다.
 
 // Frankfurter가 지원하는 어떤 base든 OK — 타입은 string으로 완화.
 // 100엔 단위 스케일링은 JPY에만 적용.
 export type FxBase = string;
-export type FxSource = "twelvedata" | "frankfurter" | "synthetic";
+export type FxSource = "twelvedata" | "frankfurter" | "daum" | "synthetic";
 
 export type FxPoint = {
   date: string; // YYYY-MM-DD
@@ -31,7 +33,8 @@ const FX_OFFLINE = process.env.EXPO_PUBLIC_FX_OFFLINE === "1";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function getFxSeries(base: FxBase, days: number): Promise<FxSeriesResult> {
-  return cachedFetch(`fx:${base}:${days}`, () => fetchFxSeriesUncached(base, days));
+  // 실시간 매매기준율 반영 위해 15분 TTL
+  return cachedFetch(`fx:${base}:${days}`, () => fetchFxSeriesUncached(base, days), 15 * 60 * 1000);
 }
 
 async function fetchFxSeriesUncached(
@@ -50,6 +53,7 @@ async function fetchFxSeriesUncached(
           live: true,
           fetchedAt: Date.now(),
         };
+        await applyLiveOverride(result);
         await setCached(cacheKey, result);
         return result;
       }
@@ -68,6 +72,27 @@ async function fetchFxSeriesUncached(
           live: true,
           fetchedAt: Date.now(),
         };
+        await applyLiveOverride(result);
+        await setCached(cacheKey, result);
+        return result;
+      }
+    } catch {
+      // 오프라인 캐시 → 합성으로 폴백
+    }
+  }
+  // Frankfurter 미지원 통화(예: VND) — 다음 금융 /days 차트로 전체 시계열 확보.
+  // /days는 오늘 매매기준율까지 포함하므로 applyLiveOverride(2차 호출) 불필요.
+  if (!FX_OFFLINE) {
+    try {
+      const past = await fetchDaumSeries(base, days);
+      if (past.length > 5) {
+        const result: FxSeriesResult = {
+          base,
+          past,
+          source: "daum",
+          live: true,
+          fetchedAt: Date.now(),
+        };
         await setCached(cacheKey, result);
         return result;
       }
@@ -83,6 +108,77 @@ async function fetchFxSeriesUncached(
     }
   }
   return { base, past: synthetic(base, days), source: "synthetic", live: false };
+}
+
+// ── 실시간 매매기준율 덮어쓰기 (다음 금융) ───────────────
+// 시계열(과거)은 그대로 두고, 최신 1포인트만 실시간 값으로 교체한다.
+// 실패하면 기존 시계열을 손대지 않는다(비공식 엔드포인트라 견고한 폴백 보장).
+async function applyLiveOverride(result: FxSeriesResult): Promise<FxSeriesResult> {
+  if (FX_OFFLINE) return result;
+  const live = await fetchDaumLiveRate(result.base);
+  if (live == null) return result; // 실패 → 기존 시계열 유지
+  const todayStr = ymd(new Date());
+  const last = result.past[result.past.length - 1];
+  if (last && last.date === todayStr) {
+    last.value = live; // 오늘 포인트가 이미 있으면 값만 갱신
+  } else {
+    // 오늘 ≥ 마지막 날짜이므로 날짜 정렬은 유지된다.
+    result.past.push({ date: todayStr, value: live });
+  }
+  result.source = "daum";
+  result.fetchedAt = Date.now();
+  return result;
+}
+
+// 다음 금융 실시간 매매기준율. basePrice를 그대로 사용(표시 단위 일치).
+// JPY는 100엔 단위(한국 관행)라 앱 단위와 동일 → 별도 스케일링 없음.
+// referer + User-Agent 없으면 403 → 비공식 엔드포인트. 어떤 실패든 null 반환(throw 없음).
+async function fetchDaumLiveRate(base: FxBase): Promise<number | null> {
+  try {
+    const url = `https://finance.daum.net/api/exchanges/FRX.KRW${base}`;
+    const res = await fetch(url, {
+      headers: {
+        referer: "https://finance.daum.net/exchanges",
+        "User-Agent": "Mozilla/5.0",
+      },
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { basePrice?: number };
+    const v = Number(json.basePrice);
+    return Number.isFinite(v) && v > 0 ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+// 다음 금융 /days 차트 — Frankfurter 미지원 통화(예: VND)의 전체 시계열 확보용.
+// 응답은 최신순(newest first)이라 오름차순 정렬한다. 실패하면 throw → 호출부가 폴백.
+async function fetchDaumSeries(base: FxBase, days: number): Promise<FxPoint[]> {
+  const perPage = Math.max(7, days + 5);
+  const url =
+    `https://finance.daum.net/api/exchanges/FRX.KRW${base}/days` +
+    `?perPage=${perPage}&page=1&pagination=false`;
+  const res = await fetch(url, {
+    headers: {
+      referer: `https://finance.daum.net/exchanges/FRX.KRW${base}`,
+      "User-Agent": "Mozilla/5.0",
+    },
+  });
+  if (!res.ok) throw new Error(`Daum days HTTP ${res.status}`);
+  const json = (await res.json()) as {
+    data?: { date?: string; basePrice?: number }[];
+  };
+  const rows = json.data ?? [];
+  return rows
+    .map((row) => {
+      const date = String(row.date).slice(0, 10);
+      let value = Number(row.basePrice);
+      // VND는 basePrice가 100동 단위(예: 5.87 ≈ 100×0.0587) → 앱 단위(1동)로 변환.
+      if (base === "VND") value = value / 100;
+      return { date, value };
+    })
+    .filter((p) => Number.isFinite(p.value) && p.value > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 // ── Frankfurter ─────────────────────────────────────────

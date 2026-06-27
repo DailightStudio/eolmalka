@@ -8,9 +8,11 @@ import {
   NativeMediaView,
   TestIds,
 } from "react-native-google-mobile-ads";
+import { USE_TEST_ADS } from "@/lib/ad-config";
 
-const unitId =
-  Platform.OS === "android"
+const unitId = USE_TEST_ADS
+  ? TestIds.NATIVE
+  : Platform.OS === "android"
     ? process.env.EXPO_PUBLIC_ADMOB_NATIVE_ANDROID || TestIds.NATIVE
     : process.env.EXPO_PUBLIC_ADMOB_NATIVE_IOS || TestIds.NATIVE;
 

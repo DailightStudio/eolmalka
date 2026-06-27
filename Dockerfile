@@ -32,4 +32,4 @@ COPY . .
 
 RUN npm ci --legacy-peer-deps
 
-ENTRYPOINT ["bash", "-c", "npx expo prebuild --clean --platform android && cd android && ./gradlew bundleRelease && ls -lh app/build/outputs/bundle/release/*.aab"]
+ENTRYPOINT ["bash", "-c", "npx expo prebuild --clean --platform android && cp credentials/eolmalka.keystore android/app/eolmalka.keystore && cd android && ./gradlew bundleRelease && ls -lh app/build/outputs/bundle/release/*.aab"]

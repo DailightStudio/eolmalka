@@ -92,7 +92,7 @@ android {
         applicationId 'com.jaylabs.eolmalka'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode = "git rev-list --count HEAD".execute().text.trim().toInteger()
+        versionCode 2
         versionName "1.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
@@ -104,6 +104,12 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            storeFile file('eolmalka.keystore')
+            storePassword 'JTtXRpjfNUJcy9qgUauVw2zTWKZjpGbY'
+            keyAlias 'eolmalka'
+            keyPassword 'JTtXRpjfNUJcy9qgUauVw2zTWKZjpGbY'
+        }
     }
     buildTypes {
         debug {
@@ -112,7 +118,7 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds

@@ -6,6 +6,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { initAppOpenAd, preloadInterstitial, showAppOpenAd } from "@/lib/ad-manager";
 import { registerBackgroundCheck } from "@/lib/background-check";
 import { initFirebase } from "@/lib/firebase";
+import { loadRemoteMacroEvents } from "@/lib/macro-events";
 import { setupNotifications } from "@/lib/notifications";
 import { registerPushToken } from "@/lib/push-registration";
 import { maybeRequestReview } from "@/lib/review";
@@ -43,6 +44,8 @@ export default function RootLayout() {
       void registerPushToken();
     });
     void registerBackgroundCheck();
+    // 원격 거시 일정 로드 (시트 CSV) — 실패해도 하드코딩 폴백, 렌더 블로킹 X
+    void loadRemoteMacroEvents().catch(() => {});
     void setupAds();
     void maybeRequestReview();
 

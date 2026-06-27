@@ -1,6 +1,6 @@
-// Travelpayouts month-matrix API — 이번달 날짜별 최저가 중앙값을 시세로 사용.
+// Travelpayouts week-matrix API — 1주일 체류 왕복의 주간 날짜별 최저가 중앙값을 시세로 사용.
 // 단일 최저가(특가·이상치)에 흔들리지 않는 안정적인 시장 수준 반영.
-// https://api.travelpayouts.com/v2/prices/month-matrix
+// https://api.travelpayouts.com/v2/prices/week-matrix
 
 import { getCachedEnvelope, setCached } from "./cache";
 
@@ -50,9 +50,17 @@ function median(values: number[]): number {
     : sorted[mid];
 }
 
-function currentMonth(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+function isoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// 오늘로부터 약 30일 후 출발, +7일 귀국 (1주일 체류 왕복)
+function tripDates(): { departDate: string; returnDate: string } {
+  const depart = new Date();
+  depart.setDate(depart.getDate() + 30);
+  const ret = new Date(depart);
+  ret.setDate(ret.getDate() + 7);
+  return { departDate: isoDate(depart), returnDate: isoDate(ret) };
 }
 
 export async function getAirFare(slug: string): Promise<AirFareResult> {
@@ -62,10 +70,12 @@ export async function getAirFare(slug: string): Promise<AirFareResult> {
 
   const cacheKey = `cache:air:${slug}`;
   try {
+    const { departDate, returnDate } = tripDates();
     const url =
-      `${BASE}/v2/prices/month-matrix` +
+      `${BASE}/v2/prices/week-matrix` +
       `?origin=${route.origin}&destination=${route.destination}` +
-      `&month=${currentMonth()}&currency=KRW&show_to_affiliates=true&token=${TOKEN}`;
+      `&depart_date=${departDate}&return_date=${returnDate}` +
+      `&currency=KRW&show_to_affiliates=true&token=${TOKEN}`;
     const res = await fetch(url);
     if (!res.ok) {
       console.warn(`[air] HTTP ${res.status} ${slug}`);

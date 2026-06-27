@@ -5,9 +5,11 @@ import {
   BannerAdSize,
   TestIds,
 } from "react-native-google-mobile-ads";
+import { USE_TEST_ADS } from "@/lib/ad-config";
 
-const bannerUnitId =
-  Platform.OS === "android"
+const bannerUnitId = USE_TEST_ADS
+  ? TestIds.ADAPTIVE_BANNER
+  : Platform.OS === "android"
     ? process.env.EXPO_PUBLIC_ADMOB_BANNER_ANDROID || TestIds.ADAPTIVE_BANNER
     : process.env.EXPO_PUBLIC_ADMOB_BANNER_IOS || TestIds.ADAPTIVE_BANNER;
 
