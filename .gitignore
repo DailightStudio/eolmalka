@@ -37,6 +37,9 @@ yarn-error.*
 .env*
 !.env.example
 
+# 로컬 키 등록 스크립트 (API 키 평문 포함 — 절대 커밋 금지)
+register-env.bat
+
 # typescript
 *.tsbuildinfo
 expo-env.d.ts
