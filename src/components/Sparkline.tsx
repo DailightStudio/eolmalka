@@ -278,7 +278,15 @@ export function Sparkline({
 }
 
 function fmtPrice(v: number): string {
-  const n = v >= 1000 ? Math.round(v) : Math.round(v * 100) / 100;
+  let n: number;
+  if (v >= 1000) {
+    n = Math.round(v);
+  } else if (v !== 0 && Math.abs(v) < 1) {
+    // VND 등 소단위 — 4자리 표시 (예: 0.0552)
+    n = Math.round(v * 10000) / 10000;
+  } else {
+    n = Math.round(v * 100) / 100;
+  }
   return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 

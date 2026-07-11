@@ -310,7 +310,16 @@ export default function CategoryScreen() {
             <Text style={styles.emoji}>{meta.emoji}</Text>
           )}
           <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{meta.name}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={styles.name}>{meta.name}</Text>
+              {/* LIVE/DEMO 배지 — CLAUDE.md 요구사항 */}
+              <Text style={[
+                styles.sourceTag,
+                { color: series.source === "live" ? "#a3e635" : "#71717a" },
+              ]}>
+                {series.source === "live" ? "LIVE" : "DEMO"}
+              </Text>
+            </View>
             <Text style={styles.sub}>{meta.subtitle}</Text>
           </View>
         </View>
@@ -636,16 +645,9 @@ export default function CategoryScreen() {
               </View>
               {backtest && (
                 <View style={styles.backtestRow}>
-                  <Text style={styles.backtestLabel}>지난 30일 백테스트</Text>
                   <Text style={styles.backtestVal}>
-                    MAPE{" "}
-                    <Text style={{ color: backtest.mape < 3 ? "#a3e635" : backtest.mape < 8 ? "#fbbf24" : "#fb7185" }}>
-                      {backtest.mape}%
-                    </Text>
-                    {"  ·  "}±1σ 적중{" "}
-                    <Text style={{ color: backtest.coverage >= 0.6 ? "#a3e635" : "#fbbf24" }}>
-                      {Math.round(backtest.coverage * 100)}%
-                    </Text>
+                    지난 30일 모델 재현 오차 ~{backtest.mape}%{"\n"}
+                    <Text style={styles.backtestLabel}>(참고용 · 시장 급변 미반영)</Text>
                   </Text>
                 </View>
               )}

@@ -189,9 +189,17 @@ const MACRO_CACHE_KEY = "eolmalka:macro:v1";
 // 원격 일정 메모리 캐시. null이면 하드코딩 사용. (앱 시작 시 AsyncStorage → 네트워크 순 hydrate)
 let remoteEvents: MacroEvent[] | null = null;
 
-// 렌더에서 동기로 읽음: 원격 있으면 원격, 없으면 하드코딩.
+// 렌더에서 동기로 읽음: 원격 이벤트 + 하드코딩을 병합 (원격이 없으면 하드코딩만).
+// 원격 이벤트가 있을 경우 date+type 기준으로 dedupe — 원격 쪽이 충돌 시 우선.
 function getMacroEvents(): MacroEvent[] {
-  return remoteEvents ?? MACRO_EVENTS;
+  if (!remoteEvents) return MACRO_EVENTS;
+  // 원격에 있는 date+type 조합 집합
+  const remoteKeys = new Set(remoteEvents.map((e) => `${e.date}|${e.type}`));
+  // 하드코딩 중 원격과 충돌하지 않는 이벤트만 남김
+  const hardcodedRemainder = MACRO_EVENTS.filter(
+    (e) => !remoteKeys.has(`${e.date}|${e.type}`),
+  );
+  return [...remoteEvents, ...hardcodedRemainder];
 }
 
 export async function loadRemoteMacroEvents(): Promise<void> {
@@ -233,9 +241,33 @@ export async function loadRemoteMacroEvents(): Promise<void> {
   }
 }
 
+// ── 이벤트 type → country/affects/importance 메타 맵 ────────────────────
+// MACRO_EVENTS의 하드코딩 배열과 일관성 유지. bare 형식(FOMC)과 접두사 형식(US_CPI) 모두 지원.
+type TypeMeta = Pick<MacroEvent, "country" | "affects" | "importance">;
+const TYPE_META: Record<string, TypeMeta> = {
+  FOMC:   { country: "US",   affects: ["fx-", "gold"],              importance: "high" },
+  CPI:    { country: "US",   affects: ["fx-usd", "fx-jpy", "gold"], importance: "high" },
+  US_CPI: { country: "US",   affects: ["fx-usd", "fx-jpy", "gold"], importance: "high" },
+  PCE:    { country: "US",   affects: ["fx-usd", "gold"],           importance: "medium" },
+  US_PCE: { country: "US",   affects: ["fx-usd", "gold"],           importance: "medium" },
+  NFP:    { country: "US",   affects: ["fx-usd", "gold"],           importance: "high" },
+  US_NFP: { country: "US",   affects: ["fx-usd", "gold"],           importance: "high" },
+  US_FFR: { country: "US",   affects: ["fx-", "gold"],              importance: "high" },
+  OPEC:   { country: "OPEC", affects: ["gas-"],                     importance: "high" },
+  BOK:    { country: "KR",   affects: ["fx-"],                      importance: "high" },
+  ECB:    { country: "EU",   affects: ["fx-eur", "fx-"],            importance: "high" },
+  KR_CPI: { country: "KR",   affects: ["fx-", "gold", "gas-"],      importance: "medium" },
+};
+// 알 수 없는 type의 기본값
+const DEFAULT_TYPE_META: TypeMeta = { country: "US", affects: ["fx-"], importance: "medium" };
+
+function metaForType(type: string): TypeMeta {
+  return TYPE_META[type] ?? DEFAULT_TYPE_META;
+}
+
 // ── 원격 JSON 파서 ───────────────────────────────────────
 // 응답: { updated_utc, source, count, events: [{ date_utc, type, note }, ...] }
-// 모든 이벤트는 美 주요 경제지표로 간주 → country=US, affects=["fx-"], importance=high.
+// type 값에서 country/affects/importance를 동적으로 파생 (TYPE_META 기반).
 function parseRemoteMacroJSON(text: string): MacroEvent[] {
   let root: unknown;
   try {
@@ -269,19 +301,29 @@ function parseRemoteMacroJSON(text: string): MacroEvent[] {
     // (upcomingEvents가 이모지/변동률 미등록 시 안전한 기본값으로 폴백)
     const typeStr = typeof rawType === "string" ? rawType.trim() : "";
     if (!typeStr) continue;
-    const type = typeStr.toUpperCase() as MacroEventType;
+    // bare alias → canonical 정규화: dedup(date|type)과 TYPE_EMOJI/POST_EVENT_VOLATILITY가
+    // 모두 canonical 키를 바라보므로, 파싱 시점에 한 번만 변환.
+    const ALIAS_MAP: Record<string, MacroEventType> = {
+      CPI: "US_CPI",
+      PCE: "US_PCE",
+      NFP: "US_NFP",
+    };
+    const upper = typeStr.toUpperCase();
+    const type = (ALIAS_MAP[upper] ?? upper) as MacroEventType;
 
     // note는 선택 — 비어있으면 시간 미정 표시
     const noteStr = typeof note === "string" ? note.trim() : "";
     const title = noteStr || "(시간 미정)";
 
+    // type에서 country/affects/importance 동적 파생 (TYPE_META 기반)
+    const typeMeta = metaForType(type);
     out.push({
       date,
       type,
       title,
-      country: "US",
-      affects: ["fx-"],
-      importance: "high",
+      country: typeMeta.country,
+      affects: typeMeta.affects,
+      importance: typeMeta.importance,
     });
   }
 

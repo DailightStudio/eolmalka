@@ -349,6 +349,13 @@ function CardRow({
             <View style={{ flex: 1 }}>
               <View style={styles.row}>
                 <Text style={styles.name}>{meta.name}</Text>
+                {/* LIVE/DEMO 배지 — CLAUDE.md 요구사항: 카드에 항상 표시 */}
+                <Text style={[
+                  styles.liveTag,
+                  { color: series.source === "live" ? "#a3e635" : "#71717a" },
+                ]}>
+                  {series.source === "live" ? "LIVE" : "DEMO"}
+                </Text>
                 {nextEvent && (
                   <View
                     style={[
@@ -432,8 +439,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 2,
   },
-  liveBadge: { color: "#a3e635", fontSize: 10, fontWeight: "600" },
-  dimmed: { color: "#71717a" },
   title: {
     color: "#fafafa",
     fontSize: 24,

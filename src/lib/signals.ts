@@ -245,7 +245,11 @@ export function forecastSummary(series: Series): ForecastSummary | null {
       date: minP.date,
       value: round0(minP.value),
       changePct: round1(((minP.value - current) / current) * 100),
-      savingAbs: Math.round(current - minP.value),
+      // VND 등 1 미만 단위는 Math.round → 항상 0이 되므로 4자리 반올림 사용
+      savingAbs:
+        Math.abs(current) < 1
+          ? Math.round((current - minP.value) * 10000) / 10000
+          : Math.round(current - minP.value),
     },
     highest: {
       daysAhead: maxIdx + 1,
@@ -258,6 +262,8 @@ export function forecastSummary(series: Series): ForecastSummary | null {
 
 function round0(v: number): number {
   if (v >= 1000) return Math.round(v);
+  // VND 등 1 미만 소단위 — 4자리 유지
+  if (v !== 0 && Math.abs(v) < 1) return Math.round(v * 10000) / 10000;
   return Math.round(v * 100) / 100;
 }
 
@@ -292,12 +298,20 @@ export function applySentimentBias(
   return { ...series, forecast, forecastBand };
 }
 
+// 밴드 값 반올림: |v| < 1(VND 등 소액 단위)은 4자리, 그 외 2자리.
+function roundBandSig(v: number): number {
+  return Math.abs(v) < 1
+    ? Math.round(v * 10000) / 10000
+    : Math.round(v * 100) / 100;
+}
+
 // 다가오는 거시 이벤트의 예상 변동성을 forecastBand에 반영.
 // 이벤트 daysAhead 이후의 forecast 인덱스부터 sigma를 expectedVolatility/100 만큼 누적.
 // (forecast value는 그대로 — bias는 sentiment 몫. 여기서는 불확실성만 확장)
 //
 // 호출 순서 주의: applySentimentBias 다음에 호출해야 함 (bias 적용된 fc.value 기준으로 band 역산).
-// 가산 정책: 동일 일자에 복수 이벤트가 겹치면 sigma는 누산되되 SIGMA_CAP(±3.5%)으로 클램프.
+// 가산 정책: 동일 일자에 복수 이벤트가 겹치면 sigma는 누산되되, 이벤트 보너스만 SIGMA_CAP(±3.5%)으로 클램프.
+// 원래 band(orig)는 항상 보존 — 이벤트가 band를 축소하지 않도록.
 // 음수 lower bound 방지: lower는 fc.value의 5% 이하로 떨어지지 않게 가드.
 const SIGMA_CAP = 0.035;
 export function applyEventVolatility(
@@ -318,15 +332,16 @@ export function applyEventVolatility(
 
   const upper = band.upper.map((v, i) => {
     const p = fc[i].value;
-    const orig = (v - p) / p; // 기존 sigmaT (시간 의존)
-    const total = Math.min(SIGMA_CAP, orig + sigmaBonus[i]);
-    return Math.round(p * (1 + total) * 100) / 100;
+    const orig = (v - p) / p; // 기존 sigmaT (시간 의존) — 항상 보존
+    // SIGMA_CAP은 이벤트 보너스에만 적용 (원래 band를 축소하지 않도록)
+    const total = orig + Math.min(SIGMA_CAP, sigmaBonus[i]);
+    return roundBandSig(p * (1 + total));
   });
   const lower = band.lower.map((v, i) => {
     const p = fc[i].value;
-    const orig = (p - v) / p;
-    const total = Math.min(SIGMA_CAP, orig + sigmaBonus[i]);
-    return Math.round(Math.max(p * 0.05, p * (1 - total)) * 100) / 100;
+    const orig = (p - v) / p; // 기존 sigmaT — 항상 보존
+    const total = orig + Math.min(SIGMA_CAP, sigmaBonus[i]);
+    return roundBandSig(Math.max(p * 0.05, p * (1 - total)));
   });
 
   return { ...series, forecastBand: { upper, lower } };

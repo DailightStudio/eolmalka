@@ -111,29 +111,37 @@ async function fetchFxSeriesUncached(
 }
 
 // ── 실시간 매매기준율 덮어쓰기 (다음 금융) ───────────────
-// 시계열(과거)은 그대로 두고, 최신 1포인트만 실시간 값으로 교체한다.
+// 시계열(과거)은 그대로 두고, Daum 실제 거래일의 포인트만 실시간 값으로 교체한다.
+// Daum의 date 필드를 사용 → 주말에도 금요일 날짜가 찍혀 가짜 토·일 포인트 생성 방지.
 // 실패하면 기존 시계열을 손대지 않는다(비공식 엔드포인트라 견고한 폴백 보장).
 async function applyLiveOverride(result: FxSeriesResult): Promise<FxSeriesResult> {
   if (FX_OFFLINE) return result;
   const live = await fetchDaumLiveRate(result.base);
   if (live == null) return result; // 실패 → 기존 시계열 유지
-  const todayStr = ymd(new Date());
+  const daumDate = live.date; // Daum 실제 거래일 (주말이면 직전 금요일)
   const last = result.past[result.past.length - 1];
-  if (last && last.date === todayStr) {
-    last.value = live; // 오늘 포인트가 이미 있으면 값만 갱신
-  } else {
-    // 오늘 ≥ 마지막 날짜이므로 날짜 정렬은 유지된다.
-    result.past.push({ date: todayStr, value: live });
+  if (last && last.date === daumDate) {
+    last.value = live.value; // 같은 날짜 포인트가 이미 있으면 값만 갱신
+  } else if (!last || daumDate > last.date) {
+    // Daum 거래일이 마지막 점보다 최신이면 추가 (날짜 정렬 유지)
+    result.past.push({ date: daumDate, value: live.value });
   }
+  // daumDate < last.date 인 경우(Daum이 오래된 값)는 시계열 손대지 않음
   result.source = "daum";
   result.fetchedAt = Date.now();
   return result;
 }
 
-// 다음 금융 실시간 매매기준율. basePrice를 그대로 사용(표시 단위 일치).
-// JPY는 100엔 단위(한국 관행)라 앱 단위와 동일 → 별도 스케일링 없음.
+// 다음 basePrice 단위 제수. VND는 100동 단위로 제공 → 앱 단위(1동)로 변환.
+// JPY는 100엔 단위이지만 한국 관행상 그대로 사용 → 1.
+function daumUnitDivisor(base: FxBase): number {
+  return base === "VND" ? 100 : 1;
+}
+
+// 다음 금융 실시간 매매기준율 + 거래 기준일.
+// basePrice를 앱 단위로 스케일링해 반환. date 필드(YYYY-MM-DD HH:mm:ss)에서 날짜만 추출.
 // referer + User-Agent 없으면 403 → 비공식 엔드포인트. 어떤 실패든 null 반환(throw 없음).
-async function fetchDaumLiveRate(base: FxBase): Promise<number | null> {
+async function fetchDaumLiveRate(base: FxBase): Promise<{ value: number; date: string } | null> {
   try {
     const url = `https://finance.daum.net/api/exchanges/FRX.KRW${base}`;
     const res = await fetch(url, {
@@ -143,9 +151,13 @@ async function fetchDaumLiveRate(base: FxBase): Promise<number | null> {
       },
     });
     if (!res.ok) return null;
-    const json = (await res.json()) as { basePrice?: number };
-    const v = Number(json.basePrice);
-    return Number.isFinite(v) && v > 0 ? v : null;
+    const json = (await res.json()) as { basePrice?: number; date?: string };
+    const v = Number(json.basePrice) / daumUnitDivisor(base);
+    if (!Number.isFinite(v) || v <= 0) return null;
+    // date: "YYYY-MM-DD HH:mm:ss" → 앞 10글자만 사용 (Daum 실제 거래일)
+    const dateStr = typeof json.date === "string" ? json.date.slice(0, 10) : "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+    return { value: v, date: dateStr };
   } catch {
     return null;
   }
@@ -172,9 +184,8 @@ async function fetchDaumSeries(base: FxBase, days: number): Promise<FxPoint[]> {
   return rows
     .map((row) => {
       const date = String(row.date).slice(0, 10);
-      let value = Number(row.basePrice);
-      // VND는 basePrice가 100동 단위(예: 5.87 ≈ 100×0.0587) → 앱 단위(1동)로 변환.
-      if (base === "VND") value = value / 100;
+      // daumUnitDivisor로 단위 통일 (VND: ÷100, 나머지: ÷1)
+      const value = Number(row.basePrice) / daumUnitDivisor(base);
       return { date, value };
     })
     .filter((p) => Number.isFinite(p.value) && p.value > 0)

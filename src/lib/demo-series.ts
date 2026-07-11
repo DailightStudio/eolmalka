@@ -197,7 +197,8 @@ async function getSeriesRaw(slug: string): Promise<Series> {
       const scaledSyn = scaleToCurrent(synPast, latest.price);
       const { merged: mergedRaw, liveDays } = mergeWithDaily(scaledSyn, scaledKrx);
       const merged = smoothPoints(mergedRaw, 7);
-      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      // 실데이터 기반 예측 — forecastDir 미전달 → computeBlendedDrift 사용 (백테스트와 동일 모델)
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug, undefined, profile.noiseAmp);
       return {
         slug,
         past: merged,
@@ -216,7 +217,7 @@ async function getSeriesRaw(slug: string): Promise<Series> {
       const daily = await loadDailySeries(slug);
       const scaled = scaleToCurrent(synPast, latest.price);
       const { merged, liveDays } = mergeWithDaily(scaled, daily);
-      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug, undefined, profile.noiseAmp);
       return {
         slug,
         past: merged,
@@ -255,7 +256,7 @@ async function getSeriesRaw(slug: string): Promise<Series> {
       const scaledSyn = scaleToCurrent(synPast, latest.price);
       const { merged: mergedRaw, liveDays } = mergeWithDaily(scaledSyn, scaledKrx);
       const merged = smoothPoints(mergedRaw, 7);
-      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug, undefined, profile.noiseAmp);
       return { slug, past: merged, forecast, source: "live", sourceName: "opinet+krx-oil", pastIsLive: liveDays >= synPast.length, liveDays, fetchedAt: latest.fetchedAt };
     }
     if (latest.live) {
@@ -263,7 +264,7 @@ async function getSeriesRaw(slug: string): Promise<Series> {
       const daily = await loadDailySeries(slug);
       const scaled = scaleToCurrent(synPast, latest.price);
       const { merged, liveDays } = mergeWithDaily(scaled, daily);
-      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug, undefined, profile.noiseAmp);
       return { slug, past: merged, forecast, source: "live", sourceName: "opinet", pastIsLive: liveDays >= synPast.length, liveDays, fetchedAt: latest.fetchedAt };
     }
     const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
@@ -283,7 +284,7 @@ async function getSeriesRaw(slug: string): Promise<Series> {
       const daily = await loadDailySeries(slug);
       const scaled = scaleToCurrent(synPast, latest.price);
       const { merged, liveDays } = mergeWithDaily(scaled, daily);
-      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug, undefined, profile.noiseAmp);
       return { slug, past: merged, forecast, source: "live", sourceName: "opinet", pastIsLive: liveDays >= synPast.length, liveDays, fetchedAt: latest.fetchedAt };
     }
     const forecast = projectForecast(synPast, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
@@ -308,7 +309,8 @@ async function getSeriesRaw(slug: string): Promise<Series> {
       const past = smoothPoints(rawPast, 7);
       // 합성 메꿈 제거: KRX 영업일만으로 충분. 휴장일은 sparkline에서 X축이 등간격이라
       // 시각적으로 차이 없음. pastIsLive=true가 라벨도 정확.
-      const forecast = projectForecast(past, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      // 실데이터 기반 예측 — forecastDir 미전달 → computeBlendedDrift 사용 (백테스트와 동일 모델)
+      const forecast = projectForecast(past, FORECAST_DAYS, slug, undefined, profile.noiseAmp);
       return {
         slug,
         past,
@@ -328,7 +330,8 @@ async function getSeriesRaw(slug: string): Promise<Series> {
       const daily = await loadDailySeries(slug);
       const scaled = scaleToCurrent(synPast, latest.pricePerGramKrw);
       const { merged, liveDays } = mergeWithDaily(scaled, daily);
-      const forecast = projectForecast(merged, FORECAST_DAYS, slug, profile.forecastDir, profile.noiseAmp);
+      // 실데이터 기반 예측 — forecastDir 미전달 → computeBlendedDrift 사용 (백테스트와 동일 모델)
+      const forecast = projectForecast(merged, FORECAST_DAYS, slug, undefined, profile.noiseAmp);
       return {
         slug,
         past: merged,
@@ -493,6 +496,13 @@ function buildSeasonalAdjuster(past: Point[]): (d: Date) => number {
   };
 }
 
+// 밴드 값 반올림: |v| < 1(VND 등 소액 단위)은 4자리, 그 외 2자리.
+function roundBand(v: number): number {
+  return Math.abs(v) < 1
+    ? Math.round(v * 10000) / 10000
+    : Math.round(v * 100) / 100;
+}
+
 // 시계열의 일별 변동성(σ)을 이용해 forecast의 ±1σ 신뢰구간 산출.
 // 시간이 지날수록 불확실성 증가 (Brownian-like sqrt(t)).
 export function computeForecastBand(past: Point[], forecast: Point[]): {
@@ -504,8 +514,8 @@ export function computeForecastBand(past: Point[], forecast: Point[]): {
   const lower: number[] = [];
   forecast.forEach((p, i) => {
     const sigmaT = sigma * Math.sqrt(i + 1);
-    upper.push(Math.round(p.value * (1 + sigmaT) * 100) / 100);
-    lower.push(Math.round(p.value * (1 - sigmaT) * 100) / 100);
+    upper.push(roundBand(p.value * (1 + sigmaT)));
+    lower.push(roundBand(p.value * (1 - sigmaT)));
   });
   return { upper, lower };
 }
@@ -629,8 +639,9 @@ function computeBlendedDrift(past: Point[], slug: string): number {
 }
 
 function round(v: number): number {
-  if (v >= 10000) return Math.round(v);
   if (v >= 1000) return Math.round(v);
+  // VND 등 1 미만 소단위 — 4자리 유지 (예: 0.0552)
+  if (v !== 0 && Math.abs(v) < 1) return Math.round(v * 10000) / 10000;
   return Math.round(v * 100) / 100;
 }
 
