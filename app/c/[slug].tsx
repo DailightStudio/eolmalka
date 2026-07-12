@@ -843,7 +843,7 @@ function fmtPct(v: number): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0b0f17" },
-  content: { padding: 16, paddingBottom: 60 },
+  content: { padding: 16, paddingBottom: 60, maxWidth: 640, width: "100%", alignSelf: "center" },
   header: {
     flexDirection: "row",
     alignItems: "center",

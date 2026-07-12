@@ -397,7 +397,7 @@ function CardRow({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0b0f17" },
-  contentContainer: { padding: 16, paddingBottom: 40 },
+  contentContainer: { padding: 16, paddingBottom: 40, maxWidth: 640, width: "100%", alignSelf: "center" },
   header: { marginBottom: 12 },
   headerRow: {
     flexDirection: "row",
