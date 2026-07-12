@@ -26,14 +26,11 @@ import {
 } from "@/lib/signals";
 import {
   loadFavs,
-  loadSignalMode,
   loadSort,
   loadUserCategories,
   saveFavs,
-  saveSignalMode,
   saveSort,
   setTarget,
-  type SignalMode,
   type SortMode,
 } from "@/lib/storage";
 import { upcomingEvents, type UpcomingEvent } from "@/lib/macro-events";
@@ -56,7 +53,6 @@ export default function HomeScreen() {
   const [cards, setCards] = useState<Card[]>([]);
   const [favs, setFavs] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<SortMode>("default");
-  const [signalMode, setSignalMode] = useState<SignalMode>("default");
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<string[]>([]);
@@ -65,8 +61,7 @@ export default function HomeScreen() {
     setLoading(true);
     setErrors([]);
     try {
-      const [userCats, mode] = await Promise.all([loadUserCategories(), loadSignalMode()]);
-      setSignalMode(mode);
+      const userCats = await loadUserCategories();
       const slugs = allSlugs(userCats);
       // 카테고리 1개 실패해도 나머지 계속 (allSettled)
       const results = await Promise.allSettled(
@@ -74,7 +69,7 @@ export default function HomeScreen() {
           const meta = metaFor(slug);
           if (!meta) return null;
           const series = await getSeries(slug);
-          const stats = computeStats(series, mode);
+          const stats = computeStats(series, "default");
           const nextEvent = upcomingEvents(slug, 30, 1)[0];
           return { slug, meta, series, stats, nextEvent };
         }),
@@ -222,41 +217,6 @@ export default function HomeScreen() {
                 </Text>
               </Pressable>
             ))}
-          </View>
-          <View style={styles.modeBox}>
-            <View style={styles.modeRow}>
-              <Text style={styles.modeLabel}>{t("home.mode.label")}</Text>
-              {(["conservative", "default", "aggressive"] as SignalMode[]).map((m) => {
-                const label = t(`home.mode.${m}`);
-                return (
-                  <Pressable
-                    key={m}
-                    hitSlop={4}
-                    onPress={() => {
-                      setSignalMode(m);
-                      void saveSignalMode(m);
-                      // 재계산
-                      setCards((prev) =>
-                        prev.map((c) => ({ ...c, stats: computeStats(c.series, m) })),
-                      );
-                    }}
-                    style={[styles.modeChip, signalMode === m && styles.modeChipActive]}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: signalMode === m }}
-                  >
-                    <Text
-                      style={[
-                        styles.modeChipText,
-                        signalMode === m && styles.modeChipTextActive,
-                      ]}
-                    >
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Text style={styles.modeHint}>{t(`home.mode.hint.${signalMode}`)}</Text>
           </View>
         </View>
       }
@@ -470,37 +430,6 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: "#fafafa", borderColor: "#fafafa" },
   chipText: { color: "#a1a1aa", fontSize: 11, fontWeight: "600" },
   chipTextActive: { color: "#0b0f17" },
-  modeBox: {
-    marginTop: 14,
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#27272a",
-    backgroundColor: "#131316",
-  },
-  modeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 0,
-    flexWrap: "wrap",
-  },
-  modeHint: { color: "#a1a1aa", fontSize: 11, lineHeight: 15, marginTop: 8 },
-  modeLabel: { color: "#71717a", fontSize: 10, fontWeight: "700", marginRight: 2 },
-  modeChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#27272a",
-    backgroundColor: "#18181b",
-  },
-  modeChipActive: {
-    borderColor: "#a3e635",
-    backgroundColor: "rgba(132,204,22,0.10)",
-  },
-  modeChipText: { color: "#a1a1aa", fontSize: 11, fontWeight: "700" },
-  modeChipTextActive: { color: "#a3e635" },
   card: {
     borderRadius: 16,
     borderWidth: 1,

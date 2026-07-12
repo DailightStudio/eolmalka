@@ -31,7 +31,7 @@ import {
 } from "@/lib/signals";
 import { VERDICT_LABEL } from "@/lib/quartiles";
 import { freshnessLabel } from "@/lib/cache";
-import { loadSignalMode, loadTargets, setTarget, type SignalMode } from "@/lib/storage";
+import { loadTargets, setTarget } from "@/lib/storage";
 import {
   requestNotificationPermission,
   scheduleLocalAlert,
@@ -63,7 +63,6 @@ export default function CategoryScreen() {
   const [draftTarget, setDraftTarget] = useState<string>("");
   const [news, setNews] = useState<NewsResult | null>(null);
   const [newsLoading, setNewsLoading] = useState(false);
-  const [signalMode, setSignalMode] = useState<SignalMode>("default");
   const [sidoPrices, setSidoPrices] = useState<SidoPrice[]>([]);
   const [openSido, setOpenSido] = useState<string | null>(null);
   const [sigungus, setSigungus] = useState<Record<string, SiGunGuPrice[]>>({});
@@ -93,9 +92,8 @@ export default function CategoryScreen() {
   useEffect(() => {
     if (!slug) return;
     void (async () => {
-      const [s, mode] = await Promise.all([getSeries(slug), loadSignalMode()]);
+      const s = await getSeries(slug);
       setSeries(s);
-      setSignalMode(mode);
       const targets = await loadTargets();
       const t = targets[slug] ?? null;
       setTargetState(t);
@@ -137,7 +135,7 @@ export default function CategoryScreen() {
   const events = upcomingEvents(slug, 60, 5);
   const biased = applySentimentBias(series, news?.sentiment, news?.confidence ?? 0.6);
   const adjustedSeries = applyEventVolatility(biased, events);
-  const stats = computeStats(adjustedSeries, signalMode);
+  const stats = computeStats(adjustedSeries, "default");
   const fcDelta = forecastChange(adjustedSeries);
   const fcSummary = forecastSummary(adjustedSeries);
   const dow = dayOfWeekStats(adjustedSeries);

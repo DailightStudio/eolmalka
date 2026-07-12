@@ -3,7 +3,7 @@ import * as TaskManager from "expo-task-manager";
 import { Platform } from "react-native";
 import { getSeries } from "./demo-series";
 import { computeStats, metaFor } from "./signals";
-import { isInCooldown, loadFavs, loadSignalMode, loadTargets, markNotified } from "./storage";
+import { isInCooldown, loadFavs, loadTargets, markNotified } from "./storage";
 import { scheduleLocalAlert } from "./notifications";
 
 const TASK_NAME = "eolmalka-price-check-v1";
@@ -11,7 +11,7 @@ const TASK_NAME = "eolmalka-price-check-v1";
 // 백그라운드 태스크: 즐겨찾기 카테고리만 fetch → 목표가 도달 또는 신호 'buy'면 알림
 TaskManager.defineTask(TASK_NAME, async () => {
   try {
-    const [favs, targets, mode] = await Promise.all([loadFavs(), loadTargets(), loadSignalMode()]);
+    const [favs, targets] = await Promise.all([loadFavs(), loadTargets()]);
     if (favs.size === 0) return BackgroundFetch.BackgroundFetchResult.NoData;
 
     let fired = 0;
@@ -19,7 +19,7 @@ TaskManager.defineTask(TASK_NAME, async () => {
       const meta = metaFor(slug);
       if (!meta) continue;
       const series = await getSeries(slug);
-      const stats = computeStats(series, mode);
+      const stats = computeStats(series, "default");
       const target = targets[slug];
 
       // 1) 사용자 목표가 도달 — 6h 쿨다운
