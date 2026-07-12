@@ -21,7 +21,7 @@ export function NativeAdCard() {
 
   useEffect(() => {
     let destroyed = false;
-    NativeAd.createForAdRequest(unitId)
+    NativeAd.createForAdRequest(unitId, { requestNonPersonalizedAdsOnly: true })
       .then((loaded) => {
         if (destroyed) {
           loaded.destroy();

@@ -83,7 +83,8 @@ export function showRewardedAd(): Promise<boolean> {
 
     ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => settle(true));
     ad.addAdEventListener(AdEventType.CLOSED, () => settle(false));
-    ad.addAdEventListener(AdEventType.ERROR, () => settle(false));
+    // 광고 미게재(no-fill) 시 기능을 막지 않음 — 광고 가용성에 핵심 기능을 종속시키지 않음
+    ad.addAdEventListener(AdEventType.ERROR, () => settle(true));
 
     const unsubLoaded = ad.addAdEventListener(AdEventType.LOADED, () => {
       unsubLoaded();
