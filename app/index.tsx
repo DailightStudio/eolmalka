@@ -38,6 +38,7 @@ import {
 } from "@/lib/storage";
 import { upcomingEvents, type UpcomingEvent } from "@/lib/macro-events";
 import { t } from "@/lib/i18n";
+import { appVersionLabel } from "@/lib/app-version";
 
 type Card = {
   slug: string;
@@ -198,7 +199,8 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.title}>{t("home.title")}</Text>
           <Text style={styles.subtitle}>{t("home.subtitle")}</Text>
-          <View style={styles.chipRow}>
+          <View style={[styles.chipRow, { alignItems: "center" }]}>
+            <Text style={styles.rowLabel}>{t("home.sort.label")}</Text>
             {(["default", "signal", "change"] as SortMode[]).map((m) => (
               <Pressable
                 key={m}
@@ -207,6 +209,8 @@ export default function HomeScreen() {
                   void saveSort(m);
                 }}
                 style={[styles.chip, sort === m && styles.chipActive]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: sort === m }}
               >
                 <Text
                   style={[
@@ -219,34 +223,40 @@ export default function HomeScreen() {
               </Pressable>
             ))}
           </View>
-          <View style={styles.modeRow}>
-            <Text style={styles.modeLabel}>{t("home.mode.label")}</Text>
-            {(["conservative", "default", "aggressive"] as SignalMode[]).map((m) => {
-              const label = t(`home.mode.${m}`);
-              return (
-                <Pressable
-                  key={m}
-                  onPress={() => {
-                    setSignalMode(m);
-                    void saveSignalMode(m);
-                    // 재계산
-                    setCards((prev) =>
-                      prev.map((c) => ({ ...c, stats: computeStats(c.series, m) })),
-                    );
-                  }}
-                  style={[styles.modeChip, signalMode === m && styles.modeChipActive]}
-                >
-                  <Text
-                    style={[
-                      styles.modeChipText,
-                      signalMode === m && styles.modeChipTextActive,
-                    ]}
+          <View style={styles.modeBox}>
+            <View style={styles.modeRow}>
+              <Text style={styles.modeLabel}>{t("home.mode.label")}</Text>
+              {(["conservative", "default", "aggressive"] as SignalMode[]).map((m) => {
+                const label = t(`home.mode.${m}`);
+                return (
+                  <Pressable
+                    key={m}
+                    hitSlop={4}
+                    onPress={() => {
+                      setSignalMode(m);
+                      void saveSignalMode(m);
+                      // 재계산
+                      setCards((prev) =>
+                        prev.map((c) => ({ ...c, stats: computeStats(c.series, m) })),
+                      );
+                    }}
+                    style={[styles.modeChip, signalMode === m && styles.modeChipActive]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: signalMode === m }}
                   >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.modeChipText,
+                        signalMode === m && styles.modeChipTextActive,
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.modeHint}>{t(`home.mode.hint.${signalMode}`)}</Text>
           </View>
         </View>
       }
@@ -304,6 +314,7 @@ export default function HomeScreen() {
               </Pressable>
             </Link>
             <Text style={styles.footnote}>© JayLabs</Text>
+            <Text style={[styles.footnote, { color: "#374151", marginTop: 2 }]}>{appVersionLabel()}</Text>
           </View>
         </View>
       }
@@ -448,6 +459,7 @@ const styles = StyleSheet.create({
   },
   subtitle: { color: "#a1a1aa", fontSize: 13, marginTop: 10, lineHeight: 19 },
   chipRow: { flexDirection: "row", gap: 6, marginTop: 14 },
+  rowLabel: { color: "#71717a", fontSize: 11, fontWeight: "700", marginRight: 4 },
   chip: {
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -458,17 +470,26 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: "#fafafa", borderColor: "#fafafa" },
   chipText: { color: "#a1a1aa", fontSize: 11, fontWeight: "600" },
   chipTextActive: { color: "#0b0f17" },
+  modeBox: {
+    marginTop: 14,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#27272a",
+    backgroundColor: "#131316",
+  },
   modeRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 8,
+    marginTop: 0,
     flexWrap: "wrap",
   },
+  modeHint: { color: "#a1a1aa", fontSize: 11, lineHeight: 15, marginTop: 8 },
   modeLabel: { color: "#71717a", fontSize: 10, fontWeight: "700", marginRight: 2 },
   modeChip: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#27272a",
@@ -478,7 +499,7 @@ const styles = StyleSheet.create({
     borderColor: "#a3e635",
     backgroundColor: "rgba(132,204,22,0.10)",
   },
-  modeChipText: { color: "#71717a", fontSize: 10, fontWeight: "700" },
+  modeChipText: { color: "#a1a1aa", fontSize: 11, fontWeight: "700" },
   modeChipTextActive: { color: "#a3e635" },
   card: {
     borderRadius: 16,

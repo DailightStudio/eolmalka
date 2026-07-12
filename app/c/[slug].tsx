@@ -53,6 +53,7 @@ import {
   type SiGunGuPrice,
 } from "@/lib/gas-provider";
 import { iconSourceFor } from "@/lib/icon-sources";
+import { appVersionLabel } from "@/lib/app-version";
 
 export default function CategoryScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -805,6 +806,7 @@ export default function CategoryScreen() {
         <Text style={styles.footnote}>
           통계 신호는 참고용이며 투자 자문이 아닙니다.{"\n"}© JayLabs
         </Text>
+        <Text style={[styles.footnote, { color: "#3f3f46", marginTop: 2 }]}>{appVersionLabel()}</Text>
       </ScrollView>
     </>
   );
