@@ -118,15 +118,21 @@ async function applyLiveOverride(result: FxSeriesResult): Promise<FxSeriesResult
   if (FX_OFFLINE) return result;
   const live = await fetchDaumLiveRate(result.base);
   if (live == null) return result; // 실패 → 기존 시계열 유지
-  const daumDate = live.date; // Daum 실제 거래일 (주말이면 직전 금요일)
+  const daumDate = live.date; // Daum 거래일 (주말이면 직전 금요일)
   const last = result.past[result.past.length - 1];
-  if (last && last.date === daumDate) {
-    last.value = live.value; // 같은 날짜 포인트가 이미 있으면 값만 갱신
-  } else if (!last || daumDate > last.date) {
-    // Daum 거래일이 마지막 점보다 최신이면 추가 (날짜 정렬 유지)
-    result.past.push({ date: daumDate, value: live.value });
+  // 값 sanity: Daum 값이 마지막 점 대비 0.5~2배를 벗어나면 이상치(단위·글리치)로 보고 스킵
+  if (last && (live.value > last.value * 2 || live.value < last.value * 0.5)) {
+    return result;
   }
-  // daumDate < last.date 인 경우(Daum이 오래된 값)는 시계열 손대지 않음
+  if (!last || daumDate > last.date) {
+    // Daum 거래일이 더 최신 → 새 포인트 추가 (날짜 정렬 유지)
+    result.past.push({ date: daumDate, value: live.value });
+  } else {
+    // 같은 날 or Daum 날짜가 과거(Frankfurter가 ECB 날짜상 앞선 경우)여도
+    // basePrice는 라이브 매매기준율이므로 마지막 점 값을 항상 갱신 → 현재가 실시간 반영.
+    // (날짜 비교로 값을 막던 버그: Frankfurter가 하루 앞서면 다음 오버라이드가 통째로 스킵됐음)
+    last.value = live.value;
+  }
   result.source = "daum";
   result.fetchedAt = Date.now();
   return result;
