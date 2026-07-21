@@ -44,7 +44,11 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "wjs9280@naver.com"
+        "appleId": "wjs9280@gmail.com",
+        "ascAppId": "6782645385",
+        "ascApiKeyPath": "C:/Users/Jay-server/.ssh/AuthKey_WGX6S9GS9Y_ce8f24.p8",
+        "ascApiKeyId": "WGX6S9GS9Y",
+        "ascApiKeyIssuerId": "5cd9dfce-33e5-42da-b072-229c40769344"
       },
       "android": {
         "track": "internal",
