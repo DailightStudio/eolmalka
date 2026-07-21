@@ -43,7 +43,3 @@ register-env.bat
 # typescript
 *.tsbuildinfo
 expo-env.d.ts
-
-# 캘리브레이션 스크립트 (실데이터 스윕용, 커밋 대상 아님)
-scripts/calibrate-*.mjs
-scripts/_calibrate_result.json

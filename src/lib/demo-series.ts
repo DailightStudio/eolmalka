@@ -597,7 +597,7 @@ function computeDailySigma(past: Point[]): number {
 type DriftWeights = { w7: number; w30: number; w90: number };
 const DEFAULT_WEIGHTS: DriftWeights = { w7: 0.4, w30: -0.3, w90: -0.1 };
 const CATEGORY_WEIGHTS: Array<{ match: (slug: string) => boolean; w: DriftWeights }> = [
-  { match: (s) => s.startsWith("fx-"),    w: { w7: 0.3, w30: -0.4, w90: -0.15 } },
+  { match: (s) => s.startsWith("fx-"),    w: { w7: 0.3, w30: -0.4, w90: -0.1 } },
   { match: (s) => s.startsWith("gold"),   w: { w7: 0.5, w30: -0.1, w90:  0.1 } },
   { match: (s) => s.startsWith("gas-"),   w: { w7: 0.2, w30: -0.2, w90: -0.2 } },
   { match: (s) => s.startsWith("air-"),   w: { w7: 0.1, w30:  0.1, w90:  0.3 } },
