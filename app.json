@@ -139,7 +139,8 @@
       "./plugins/withAndroidMemory",
       "./plugins/withAndroidVersionCode",
       "./plugins/withAndroidSigning",
-      "./plugins/withIosNonModularHeaders"
+      "./plugins/withIosNonModularHeaders",
+      "expo-tracking-transparency"
     ],
     "react-native-google-mobile-ads": {
       "android_app_id": "ca-app-pub-3035772295627652~2204214861",

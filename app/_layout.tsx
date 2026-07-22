@@ -11,6 +11,7 @@ import { setupNotifications } from "@/lib/notifications";
 import { registerPushToken } from "@/lib/push-registration";
 import { maybeRequestReview } from "@/lib/review";
 import { loadOnboardingDone } from "@/lib/storage";
+import { requestTrackingPermission } from "@/lib/tracking";
 
 async function setupAds() {
   if (Platform.OS === "web") return;
@@ -38,7 +39,12 @@ export default function RootLayout() {
       const done = await loadOnboardingDone();
       if (!done) router.replace("/onboarding");
     })();
-    void initFirebase();
+    void (async () => {
+      // ATT 프롬프트는 Firebase Analytics·AdMob 등 추적 SDK 초기화보다 반드시 먼저 떠야 함 (App Store §5.1.2)
+      await requestTrackingPermission();
+      await initFirebase();
+      await setupAds();
+    })();
     // 알림 채널/권한 셋업 후 서버 푸시 토큰 등록 (이미 허용된 경우에만 등록됨)
     void setupNotifications().finally(() => {
       void registerPushToken();
@@ -46,7 +52,6 @@ export default function RootLayout() {
     void registerBackgroundCheck();
     // 원격 거시 일정 로드 (시트 CSV) — 실패해도 하드코딩 폴백, 렌더 블로킹 X
     void loadRemoteMacroEvents().catch(() => {});
-    void setupAds();
     void maybeRequestReview();
 
     const sub = AppState.addEventListener("change", (state) => {
