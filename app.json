@@ -11,7 +11,7 @@
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.jaylabs.eolmalka",
+      "bundleIdentifier": "com.dailightstudio.eolmalka",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "UIBackgroundModes": [
@@ -26,7 +26,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0b0f17"
       },
-      "package": "com.jaylabs.eolmalka",
+      "package": "com.dailightstudio.eolmalka",
       "googleServicesFile": "./google-services.json"
     },
     "web": {
