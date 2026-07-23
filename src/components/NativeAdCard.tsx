@@ -8,7 +8,7 @@ import {
   NativeMediaView,
   TestIds,
 } from "react-native-google-mobile-ads";
-import { USE_TEST_ADS } from "@/lib/ad-config";
+import { adRequestOptions, USE_TEST_ADS } from "@/lib/ad-config";
 
 const unitId = USE_TEST_ADS
   ? TestIds.NATIVE
@@ -21,7 +21,7 @@ export function NativeAdCard() {
 
   useEffect(() => {
     let destroyed = false;
-    NativeAd.createForAdRequest(unitId, { requestNonPersonalizedAdsOnly: true })
+    NativeAd.createForAdRequest(unitId, adRequestOptions())
       .then((loaded) => {
         if (destroyed) {
           loaded.destroy();

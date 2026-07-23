@@ -5,7 +5,7 @@ import {
   BannerAdSize,
   TestIds,
 } from "react-native-google-mobile-ads";
-import { USE_TEST_ADS } from "@/lib/ad-config";
+import { adRequestOptions, USE_TEST_ADS } from "@/lib/ad-config";
 
 const bannerUnitId = USE_TEST_ADS
   ? TestIds.ADAPTIVE_BANNER
@@ -23,6 +23,7 @@ export function AdBanner() {
       <BannerAd
         unitId={bannerUnitId}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        requestOptions={adRequestOptions()}
         onAdFailedToLoad={() => setFailed(true)}
       />
     </View>

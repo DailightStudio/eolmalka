@@ -7,7 +7,7 @@ import {
   RewardedAdEventType,
   TestIds,
 } from "react-native-google-mobile-ads";
-import { USE_TEST_ADS } from "@/lib/ad-config";
+import { adRequestOptions, USE_TEST_ADS } from "@/lib/ad-config";
 
 const interstitialUnitId = USE_TEST_ADS
   ? TestIds.INTERSTITIAL
@@ -37,9 +37,10 @@ let interstitialShown = false;
 export function preloadInterstitial(): void {
   if (Platform.OS === "web") return;
 
-  interstitialAd = InterstitialAd.createForAdRequest(interstitialUnitId, {
-    requestNonPersonalizedAdsOnly: true,
-  });
+  interstitialAd = InterstitialAd.createForAdRequest(
+    interstitialUnitId,
+    adRequestOptions()
+  );
 
   interstitialAd.addAdEventListener(AdEventType.LOADED, () => {
     interstitialLoaded = true;
@@ -70,9 +71,7 @@ export function showRewardedAd(): Promise<boolean> {
   if (Platform.OS === "web") return Promise.resolve(true);
 
   return new Promise((resolve) => {
-    const ad = RewardedAd.createForAdRequest(rewardedUnitId, {
-      requestNonPersonalizedAdsOnly: true,
-    });
+    const ad = RewardedAd.createForAdRequest(rewardedUnitId, adRequestOptions());
 
     let settled = false;
     const settle = (v: boolean) => {
@@ -106,9 +105,7 @@ export function initAppOpenAd(): void {
 }
 
 function loadAppOpenAd(): void {
-  appOpenAd = AppOpenAd.createForAdRequest(appOpenUnitId, {
-    requestNonPersonalizedAdsOnly: true,
-  });
+  appOpenAd = AppOpenAd.createForAdRequest(appOpenUnitId, adRequestOptions());
   appOpenAd.addAdEventListener(AdEventType.ERROR, () => {
     appOpenAd = null;
   });
