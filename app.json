@@ -138,7 +138,6 @@
       ],
       "./plugins/withAndroidMemory",
       "./plugins/withAndroidVersionCode",
-      "./plugins/withAndroidSigning",
       "./plugins/withIosNonModularHeaders",
       "expo-tracking-transparency"
     ],

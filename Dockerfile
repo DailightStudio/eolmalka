@@ -32,4 +32,8 @@ COPY . .
 
 RUN npm ci --legacy-peer-deps
 
-ENTRYPOINT ["bash", "-c", "npx expo prebuild --clean --platform android && cp credentials/eolmalka.keystore android/app/eolmalka.keystore && cd android && ./gradlew bundleRelease && ls -lh app/build/outputs/bundle/release/*.aab"]
+# 로컬 검증 전용 — 릴리스 빌드가 컴파일되는지 확인하는 용도다.
+# 여기서 나오는 .aab 는 디버그 키로 서명되므로 Play 에 올릴 수 없다.
+# 스토어용 서명 AAB 는 EAS 원격 키스토어로만 만든다:
+#   eas build --platform android --profile production
+ENTRYPOINT ["bash", "-c", "npx expo prebuild --clean --platform android && cd android && ./gradlew bundleRelease && ls -lh app/build/outputs/bundle/release/*.aab"]
