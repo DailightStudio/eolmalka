@@ -46,13 +46,13 @@
       "ios": {
         "appleId": "wjs9280@gmail.com",
         "ascAppId": "6782645385",
-        "ascApiKeyPath": "C:/Users/Jay-server/.ssh/AuthKey_WGX6S9GS9Y_ce8f24.p8",
+        "ascApiKeyPath": "./credentials/AuthKey_WGX6S9GS9Y_ce8f24.p8",
         "ascApiKeyId": "WGX6S9GS9Y",
         "ascApiKeyIssuerId": "5cd9dfce-33e5-42da-b072-229c40769344"
       },
       "android": {
         "track": "internal",
-        "serviceAccountKeyPath": "C:/Users/Jay-server/Desktop/projects/server-agent/uploads/pindog-3c73b6f46ee2_e5c393.json"
+        "serviceAccountKeyPath": "./credentials/pindog-3c73b6f46ee2_e5c393.json"
       }
     }
   }
