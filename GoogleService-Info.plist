@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.jaylabs.eolmalka</string>
+	<string>com.dailightstudio.eolmalka</string>
 	<key>PROJECT_ID</key>
 	<string>eolmalka</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:893017178707:ios:bf29f4e16507b603f7fca6</string>
+	<string>1:893017178707:ios:2a52abeb4bd2d939f7fca6</string>
 </dict>
 </plist>
