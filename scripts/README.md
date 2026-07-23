@@ -19,3 +19,18 @@ node scripts/asc.mjs "/v1/appInfos/<id>" PATCH '{"data":{...}}'
 ## 주의
 - `credentials/` 는 gitignore 대상(.gitignore:23), `*.p8` 도 별도 차단(.gitignore:17).
 - 이 레포는 **public** 이다. 스크립트에 키·비번을 하드코딩하지 말 것.
+
+## asc-review-detail.mjs
+심사 연락처(App Review Information)를 만든다. 전화번호는 개발자 실제 번호라
+코드에 넣지 않고 인자로 받는다.
+
+```bash
+node scripts/asc-review-detail.mjs "+82 10-1234-5678"
+```
+
+## API 로 안 되는 것 (ASC 웹에서 직접)
+- **App Privacy(데이터 수집 선언)** — ASC API 가 엔드포인트를 노출하지 않는다
+  (`/v1/appDataUsages` 404, app/appStoreVersion 리소스에 privacy 관계 없음).
+  이 앱은 Firebase Analytics·Crashlytics·AdMob 탑재 → 식별자/사용 데이터 수집에 해당.
+- **contentRightsDeclaration** — 뉴스 헤드라인(Google News RSS)을 표시하므로
+  제3자 콘텐츠 사용 여부 판단이 필요. 개발자가 직접 선언할 것.
