@@ -14,3 +14,27 @@ export const USE_TEST_ADS =
 export function adRequestOptions(): { requestNonPersonalizedAdsOnly: boolean } {
   return { requestNonPersonalizedAdsOnly: !isTrackingAuthorized() };
 }
+
+// 광고 준비 완료 게이트 — 배너·네이티브가 SDK 초기화·ATT 응답 이후에 요청하도록.
+// (마운트 즉시 요청하면 SDK 미초기화로 첫 요청 실패 + ATT 응답 前이라 승인자에게도 항상 비개인화됨)
+let adsReady = false;
+const readyWaiters: Array<() => void> = [];
+export function markAdsReady(): void {
+  if (adsReady) return;
+  adsReady = true;
+  readyWaiters.splice(0).forEach((fn) => fn());
+}
+// 준비되면 즉시, 아니면 timeoutMs 후 폴백 resolve — 광고가 부팅/렌더를 막지 않도록 무한대기 방지.
+export function whenAdsReady(timeoutMs = 8000): Promise<void> {
+  if (adsReady) return Promise.resolve();
+  return new Promise((resolve) => {
+    let done = false;
+    const fire = () => {
+      if (done) return;
+      done = true;
+      resolve();
+    };
+    readyWaiters.push(fire);
+    setTimeout(fire, timeoutMs);
+  });
+}

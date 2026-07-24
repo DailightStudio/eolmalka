@@ -8,7 +8,7 @@ import {
   NativeMediaView,
   TestIds,
 } from "react-native-google-mobile-ads";
-import { adRequestOptions, USE_TEST_ADS } from "@/lib/ad-config";
+import { adRequestOptions, USE_TEST_ADS, whenAdsReady } from "@/lib/ad-config";
 
 const unitId = USE_TEST_ADS
   ? TestIds.NATIVE
@@ -21,21 +21,25 @@ export function NativeAdCard() {
 
   useEffect(() => {
     let destroyed = false;
-    NativeAd.createForAdRequest(unitId, adRequestOptions())
-      .then((loaded) => {
-        if (destroyed) {
-          loaded.destroy();
-          return;
-        }
-        setAd(loaded);
-      })
-      .catch(() => {});
+    let created: NativeAd | null = null;
+    // SDK 초기화·ATT 응답 이후에 요청 (개인화 반영)
+    void whenAdsReady().then(() => {
+      if (destroyed) return;
+      NativeAd.createForAdRequest(unitId, adRequestOptions())
+        .then((loaded) => {
+          if (destroyed) {
+            loaded.destroy();
+            return;
+          }
+          created = loaded;
+          setAd(loaded);
+        })
+        .catch(() => {});
+    });
     return () => {
       destroyed = true;
-      setAd((prev) => {
-        prev?.destroy();
-        return null;
-      });
+      created?.destroy();
+      setAd(null);
     };
   }, []);
 

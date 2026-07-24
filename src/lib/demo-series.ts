@@ -624,7 +624,8 @@ function computeBlendedDrift(past: Point[], slug: string): number {
     return (totalPct / windowDays) * weight;
   };
   const { w7, w30, w90 } = weightsFor(slug);
-  let drift = trend(7, w7) + trend(30, w30) + trend(90, w90);
+  const momentum = trend(7, w7); // 단기 관성 (부호 기준축)
+  let rest = trend(30, w30) + trend(90, w90); // 반전 + 장기
 
   // 평균회귀: 이탈률 × 0.015 만큼 하루당 되돌림.
   // 예) MA365 대비 +5% → 매일 -0.075% 회귀력. 극단 예측 누적 방지.
@@ -632,10 +633,21 @@ function computeBlendedDrift(past: Point[], slug: string): number {
     const lookback = Math.min(365, n);
     const ma = past.slice(-lookback).reduce((s, p) => s + p.value, 0) / lookback;
     const deviation = (last - ma) / ma;
-    drift -= deviation * 0.015;
+    rest -= deviation * 0.015;
   }
 
-  return drift;
+  // FX 한정: 반전·평균회귀(rest)가 단기 모멘텀의 부호를 뒤집지 못하게 clamp(모멘텀 25% 보존).
+  // 큰 낙폭에서 반전항이 모멘텀을 이겨 '곧 상승' 오예측하던 문제 교정. 5통화 백테스트로 MAPE·방향정확도 개선 확인.
+  if (
+    slug.startsWith("fx-") &&
+    momentum !== 0 &&
+    Math.sign(rest) === -Math.sign(momentum)
+  ) {
+    const cap = Math.abs(momentum) * 0.75;
+    rest = -Math.sign(momentum) * Math.min(Math.abs(rest), cap);
+  }
+
+  return momentum + rest;
 }
 
 function round(v: number): number {

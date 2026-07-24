@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { AppState, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { markAdsReady } from "@/lib/ad-config";
 import { initAppOpenAd, preloadInterstitial, showAppOpenAd } from "@/lib/ad-manager";
 import { registerBackgroundCheck } from "@/lib/background-check";
 import { initFirebase } from "@/lib/firebase";
@@ -26,6 +27,8 @@ async function setupAds() {
     const MobileAds = (await import("react-native-google-mobile-ads")).default;
     await MobileAds().initialize();
   } catch {}
+  // 배너·네이티브가 이제 광고를 요청하도록 게이트 해제 (ATT 응답·SDK 초기화 이후 = 승인자 개인화 반영)
+  markAdsReady();
   // 전면 광고 미리 로드 (앱 시작 직후 노출 금지 → 상세 화면 퇴장 시 노출)
   preloadInterstitial();
   initAppOpenAd();
@@ -54,8 +57,12 @@ export default function RootLayout() {
     void loadRemoteMacroEvents().catch(() => {});
     void maybeRequestReview();
 
+    // 앱오프닝 광고: 백그라운드→활성 복귀 때만 노출.
+    // 권한 얼럿 dismiss(inactive→active)·콜드스타트 첫 active 오발 방지 (AdMob 정책·리젝 리스크).
+    let prevState = AppState.currentState;
     const sub = AppState.addEventListener("change", (state) => {
-      if (state === "active") showAppOpenAd();
+      if (prevState === "background" && state === "active") showAppOpenAd();
+      prevState = state;
     });
     return () => sub.remove();
   }, []);
